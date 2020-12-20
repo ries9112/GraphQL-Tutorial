@@ -1,1 +1,1 @@
-![](https://api.decentraland.org/v1/parcels/120/-21/map.png)<!-- -->
+![](https://api.decentraland.org/v1/parcels/33/6/map.png)<!-- -->

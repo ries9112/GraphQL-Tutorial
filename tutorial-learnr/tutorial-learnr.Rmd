@@ -3,6 +3,7 @@ title: "GraphQL Tutorial"
 output: 
   learnr::tutorial:
     theme: spacelab
+    progressive: true
 runtime: shiny_prerendered
 ---
 
@@ -24,7 +25,6 @@ Dankest spot in all the land:
 knitr::include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
 ```
 
-
 ### Exercise 
 
 The code below can be used to retrieve the coordinates to the Predict Crypto HQ in Decentraland. 
@@ -33,7 +33,7 @@ The code below can be used to retrieve the coordinates to the Predict Crypto HQ 
 
 2. Then, change the url below to find the center of the map (0, 0) by replacing the numbers 33 and 6 in the link below with 0's.
 
-```{r show-map, exercise=TRUE, exercise.lines = 5}
+```{r show-map, exercise=TRUE, exercise.lines = 2}
 knitr::include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
 ```
 
