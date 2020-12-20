@@ -11,69 +11,55 @@ library(learnr)
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
+## APIs Introduction
 
-## Topic 1
+Add here
+
+
+## Decentraland
+
+Dankest spot in all the land:
+
+```{r echo=F}
+knitr::include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
+```
+
 
 ### Exercise 
 
-*Here's a simple exercise with an empty code chunk provided for entering the answer.*
+The code below can be used to retrieve the coordinates to the Predict Crypto HQ in Decentraland. 
 
-Write the R code required to add two plus two:
+1. First, run the code to produce the same map as shown above for the coordinates (33, 6). Simply **press the green "Run Code" button to show the results**.
 
-```{r two-plus-two, exercise=TRUE}
-library(imager)
-im<-load.image("https://api.decentraland.org/v1/parcels/33/6/map.png")
-plot(im)
+2. Then, change the url below to find the center of the map (0, 0) by replacing the numbers 33 and 6 in the link below with 0's.
+
+```{r show-map, exercise=TRUE, exercise.lines = 5}
+knitr::include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
 ```
 
-### Exercise with Code
+```{r show-map-hint}
+knitr::include_graphics("https://api.decentraland.org/v1/parcels/0/0/map.png")
 
-*Here's an exercise with some prepopulated code as well as `exercise.lines = 5` to provide a bit more initial room to work.*
-
-Now write a function that adds any two numbers and then call it:
-
-```{r add-function, exercise=TRUE, exercise.lines = 5}
-add <- function() {
-  
-}
 ```
 
-## Topic 2
+A copy of the Predict Crypto HQ is also located at the coordinates (120, -21). Feel free to find it on the map using the interactive code chunk above, or navigate to the location inside the game itself: 
 
-### Exercise with Hint
 
-*Here's an exercise where the chunk is pre-evaulated via the `exercise.eval` option (so the user can see the default output we'd like them to customize). We also add a "hint" to the correct solution via the chunk immediate below labeled `print-limit-hint`.*
-
-Modify the following code to limit the number of rows printed to 5:
-
-```{r print-limit, exercise=TRUE, exercise.eval=TRUE}
-mtcars
-```
-
-```{r print-limit-hint}
-head(mtcars)
-```
-
-### Quiz
-
-*You can include any number of single or multiple choice questions as a quiz. Use the `question` function to define a question and the `quiz` function for grouping multiple questions together.*
-
-Some questions to verify that you understand the purposes of various base and recommended R packages:
-
-```{r quiz}
-quiz(
-  question("Which package contains functions for installing other R packages?",
-    answer("base"),
-    answer("tools"),
-    answer("utils", correct = TRUE),
-    answer("codetools")
-  ),
-  question("Which of the R packages listed below are used to create plots?",
-    answer("lattice", correct = TRUE),
-    answer("tools"),
-    answer("stats"),
-    answer("grid", correct = TRUE)
-  )
-)
-```
+<!-- In case I need to remember syntax for a quiz: -->
+<!-- ```{r quiz} -->
+<!-- quiz( -->
+<!--   question("Which package contains functions for installing other R packages?", -->
+<!--     answer("base"), -->
+<!--     answer("tools"), -->
+<!--     answer("utils", correct = TRUE), -->
+<!--     answer("codetools") -->
+<!--   ), -->
+<!--   question("Which of the R packages listed below are used to create plots?", -->
+<!--     answer("lattice", correct = TRUE), -->
+<!--     answer("tools"), -->
+<!--     answer("stats"), -->
+<!--     answer("grid", correct = TRUE) -->
+<!--   ) -->
+<!-- ) -->
+<!-- ``` -->
 

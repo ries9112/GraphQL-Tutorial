@@ -116,17 +116,27 @@ $(document).ready(function () {
 
 <div class="topics">
 
-<div id="section-topic-1" class="section level2">
-<h2>Topic 1</h2>
+<div id="section-apis-introduction" class="section level2">
+<h2>APIs Introduction</h2>
+<p>Add here</p>
+</div>
+<div id="section-decentraland" class="section level2">
+<h2>Decentraland</h2>
+<p>Dankest spot in all the land:</p>
+<p><img src="https://api.decentraland.org/v1/parcels/33/6/map.png" /><!-- --></p>
 <div id="section-exercise" class="section level3">
 <h3>Exercise</h3>
-<p><em>Here’s a simple exercise with an empty code chunk provided for entering the answer.</em></p>
-<p>Write the R code required to add two plus two:</p>
-<div class="tutorial-exercise" data-label="two-plus-two" data-engine="R" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
-<pre class="text"><code>library(imager)
-im&lt;-load.image(&quot;https://api.decentraland.org/v1/parcels/33/6/map.png&quot;)
-plot(im)</code></pre>
+<p>The code below can be used to retrieve the coordinates to the Predict Crypto HQ in Decentraland.</p>
+<ol style="list-style-type: decimal">
+<li><p>First, run the code to produce the same map as shown above for the coordinates (33,6).</p></li>
+<li><p>Then, change the url below to find the center of the map (0,0) by replacing the numbers 33 and 6 in the link below with 0’s.</p></li>
+</ol>
+<div class="tutorial-exercise" data-label="show-map" data-engine="R" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<pre class="text"><code>knitr::include_graphics(&quot;https://api.decentraland.org/v1/parcels/33/6/map.png&quot;)</code></pre>
 <script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":false,"message":true,"exercise.df_print":"paged","exercise.checker":"NULL","exercise.engine":"R","engine":"R"}</script>
+</div>
+<div class="tutorial-exercise-support" data-label="show-map-hint" data-engine="R" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<pre class="text"><code>knitr::include_graphics(&quot;https://api.decentraland.org/v1/parcels/0/0/map.png&quot;)</code></pre>
 </div>
 </div>
 <div id="section-exercise-with-code" class="section level3">
@@ -196,9 +206,9 @@ session$onSessionEnded(function() {
 </script>
  
 <script type="application/shiny-prerendered" data-context="server">
-`tutorial-exercise-two-plus-two-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-two-plus-two-code-editor`)), session)
-output$`tutorial-exercise-two-plus-two-output` <- renderUI({
-  `tutorial-exercise-two-plus-two-result`()
+`tutorial-exercise-show-map-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-show-map-code-editor`)), session)
+output$`tutorial-exercise-show-map-output` <- renderUI({
+  `tutorial-exercise-show-map-result`()
 })
 </script>
  
@@ -217,11 +227,11 @@ output$`tutorial-exercise-print-limit-output` <- renderUI({
 </script>
  
 <script type="application/shiny-prerendered" data-context="server">
-learnr:::question_prerendered_chunk(structure(list(type = "learnr_radio", label = "quiz-1", question = structure("Which package contains functions for installing other R packages?", html = TRUE, class = c("html", "character")), answers = list(structure(list(id = "lnr_ans_709a295",     option = "base", value = "base", label = structure("base", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_c710fd2",     option = "tools", value = "tools", label = structure("tools", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_653f2bd",     option = "utils", value = "utils", label = structure("utils", html = TRUE, class = c("html",     "character")), correct = TRUE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_930a30f",     option = "codetools", value = "codetools", label = structure("codetools", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer"))), button_labels = list(submit = structure("Submit Answer", html = TRUE, class = c("html", "character")), try_again = structure("Try Again", html = TRUE, class = c("html", "character"))), messages = list(correct = structure("Correct!", html = TRUE, class = c("html", "character")), try_again = structure("Incorrect", html = TRUE, class = c("html", "character")), incorrect = structure("Incorrect", html = TRUE, class = c("html", "character")), message = NULL, post_message = NULL), ids = list(    answer = "quiz-1-answer", question = "quiz-1"), loading = structure("<strong>Loading:<\u002fstrong> \nWhich package contains functions for installing other R packages?\n<br/><br/><br/>", html = TRUE, class = c("html", "character")), random_answer_order = FALSE, allow_retry = FALSE,     seed = 1842040515.14223, options = list()), class = c("learnr_radio", "tutorial_question")))
+learnr:::question_prerendered_chunk(structure(list(type = "learnr_radio", label = "quiz-1", question = structure("Which package contains functions for installing other R packages?", html = TRUE, class = c("html", "character")), answers = list(structure(list(id = "lnr_ans_9856ac8",     option = "base", value = "base", label = structure("base", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_eed7da6",     option = "tools", value = "tools", label = structure("tools", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_fc96ed1",     option = "utils", value = "utils", label = structure("utils", html = TRUE, class = c("html",     "character")), correct = TRUE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_6249408",     option = "codetools", value = "codetools", label = structure("codetools", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer"))), button_labels = list(submit = structure("Submit Answer", html = TRUE, class = c("html", "character")), try_again = structure("Try Again", html = TRUE, class = c("html", "character"))), messages = list(correct = structure("Correct!", html = TRUE, class = c("html", "character")), try_again = structure("Incorrect", html = TRUE, class = c("html", "character")), incorrect = structure("Incorrect", html = TRUE, class = c("html", "character")), message = NULL, post_message = NULL), ids = list(    answer = "quiz-1-answer", question = "quiz-1"), loading = structure("<strong>Loading:<\u002fstrong> \nWhich package contains functions for installing other R packages?\n<br/><br/><br/>", html = TRUE, class = c("html", "character")), random_answer_order = FALSE, allow_retry = FALSE,     seed = 1363104278.36526, options = list()), class = c("learnr_radio", "tutorial_question")))
 </script>
  
 <script type="application/shiny-prerendered" data-context="server">
-learnr:::question_prerendered_chunk(structure(list(type = "learnr_checkbox", label = "quiz-2", question = structure("Which of the R packages listed below are used to create plots?", html = TRUE, class = c("html", "character")), answers = list(structure(list(id = "lnr_ans_a07c50f",     option = "lattice", value = "lattice", label = structure("lattice", html = TRUE, class = c("html",     "character")), correct = TRUE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_c07499c",     option = "tools", value = "tools", label = structure("tools", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_353a4f7",     option = "stats", value = "stats", label = structure("stats", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_a6744d8",     option = "grid", value = "grid", label = structure("grid", html = TRUE, class = c("html",     "character")), correct = TRUE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer"))), button_labels = list(submit = structure("Submit Answer", html = TRUE, class = c("html", "character")), try_again = structure("Try Again", html = TRUE, class = c("html", "character"))), messages = list(correct = structure("Correct!", html = TRUE, class = c("html", "character")), try_again = structure("Incorrect", html = TRUE, class = c("html", "character")), incorrect = structure("Incorrect", html = TRUE, class = c("html", "character")), message = NULL, post_message = NULL), ids = list(    answer = "quiz-2-answer", question = "quiz-2"), loading = structure("<strong>Loading:<\u002fstrong> \nWhich of the R packages listed below are used to create plots?\n<br/><br/><br/>", html = TRUE, class = c("html", "character")), random_answer_order = FALSE, allow_retry = FALSE,     seed = 1728024944.69533, options = list()), class = c("learnr_checkbox", "tutorial_question")))
+learnr:::question_prerendered_chunk(structure(list(type = "learnr_checkbox", label = "quiz-2", question = structure("Which of the R packages listed below are used to create plots?", html = TRUE, class = c("html", "character")), answers = list(structure(list(id = "lnr_ans_15ab449",     option = "lattice", value = "lattice", label = structure("lattice", html = TRUE, class = c("html",     "character")), correct = TRUE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_805b88d",     option = "tools", value = "tools", label = structure("tools", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_fea6ce6",     option = "stats", value = "stats", label = structure("stats", html = TRUE, class = c("html",     "character")), correct = FALSE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer")), structure(list(id = "lnr_ans_ceceb3a",     option = "grid", value = "grid", label = structure("grid", html = TRUE, class = c("html",     "character")), correct = TRUE, message = NULL), class = c("tutorial_question_answer", "tutorial_quiz_answer"))), button_labels = list(submit = structure("Submit Answer", html = TRUE, class = c("html", "character")), try_again = structure("Try Again", html = TRUE, class = c("html", "character"))), messages = list(correct = structure("Correct!", html = TRUE, class = c("html", "character")), try_again = structure("Incorrect", html = TRUE, class = c("html", "character")), incorrect = structure("Incorrect", html = TRUE, class = c("html", "character")), message = NULL, post_message = NULL), ids = list(    answer = "quiz-2-answer", question = "quiz-2"), loading = structure("<strong>Loading:<\u002fstrong> \nWhich of the R packages listed below are used to create plots?\n<br/><br/><br/>", html = TRUE, class = c("html", "character")), random_answer_order = FALSE, allow_retry = FALSE,     seed = 1941490046.59592, options = list()), class = c("learnr_checkbox", "tutorial_question")))
 </script>
  <!--html_preserve-->
 <script type="application/shiny-prerendered" data-context="dependencies">
