@@ -1,0 +1,90 @@
+---
+title: "GraphQL Tutorial"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Decentraland
+
+Dankest spot in all the land:
+
+```{r}
+knitr::include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
+```
+
+
+## GraphQL 
+
+- GRT wraps Ethereum smart contracts into GraphQL APIs
+
+
+GraphQL request to Decentraland:
+
+```{r}
+library(ghql)
+library(jsonlite)
+library(dplyr)
+
+# Decentraland connection:
+con <- GraphqlClient$new(
+    url = "https://api.thegraph.com/subgraphs/name/decentraland/marketplace"
+)
+# Initialize empty query
+qry <- Query$new()
+# Example Query
+qry$query('mydata', '{
+  counts {
+    orderTotal
+    orderParcel
+    orderEstate
+    orderWearable
+    orderENS
+    parcelTotal
+    estateTotal
+    wearableTotal
+    ensTotal
+    started
+  }
+  orders(first: 5) {
+    category
+    txHash
+    blockNumber
+    nft {
+      owner {
+        address
+        mana
+      }
+      image
+      parcel {
+        x
+        y
+      }
+    }
+    nftAddress
+    buyer
+    price
+    status
+  }
+}')
+
+# Query to object
+(x <- con$exec(qry$queries$mydata))
+
+# Parse query
+decentraland_data <- jsonlite::fromJSON(x)
+
+# Convert to dataframe
+decentraland_data <- as.data.frame(decentraland_data)
+
+# Display data
+#DT::datatable(decentraland_data, options = list(scrollX = TRUE))
+
+decentraland_data
+```
+
+
+
+
