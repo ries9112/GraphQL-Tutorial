@@ -12,6 +12,8 @@ bibliography: packages.bib
 library(learnr)
 library(knitr)
 library(anytime)
+library(tibble)
+library(tidyr)
 ```
 
 <!-- css below doesn't show anything, it limits the code chunks to a certain size in case any of the results show really large outputs -->
@@ -33,7 +35,7 @@ An API is a tool that anyone can create to share data. APIs are frequently creat
 
 APIs are meant to be accessible regardless of the programming language used. The data can be accessed through a URL the same way you would access a website, but typically returns very light text in the JSON format, which can then be manipulated to get the data into the correct form based on the given programming language used. APIs basically provide a way for anyone to interact with a service through code, which can be as simple as pulling some data, or more complex, for example to programmatically trigger a trade on a cryptocurrency exchange (or stock trading for that matter).
 
-### API Usage in R
+### API Usage
 
 <!-- If needed, list of postman public endpoints that do not require authentication: https://documenter.getpostman.com/view/8854915/Szf7znEe -->
 
@@ -67,11 +69,11 @@ Because we are interested in the actual content of the request, we can use the f
 ```{r}
 # Get the data from the url
 example_data <- content(api_request, as='text')
-# show the data in its raw format
+# show the data in its raw format (not yet usable)
 example_data
 ```
 
-When dealing with APIs the data will often be in the **JSON** format, which is the output we showed above, and usually needs to be manipulated into a format the user is used to working with. We can use the `jsonlite` [[@R-jsonlite]](<https://arxiv.org/abs/1403.2805>) package to easily convert the data from the JSON format to being a dataframe which is the standard way of storing tabular data in R by using the `fromJSON()` function:
+When dealing with APIs the data will often be in the **JSON** format, which is the format of the output shown above, and usually needs to be manipulated into a format the user is used to working with. In our case we can use the `jsonlite` [[@R-jsonlite]](<https://arxiv.org/abs/1403.2805>) package to easily convert the data from the JSON format to a dataframe which is the standard way of storing tabular data in R by using the `fromJSON()` function:
 
 ```{r, message=F}
 library(jsonlite)
@@ -197,7 +199,7 @@ We can think of the intersection between the `ask` and the `bid` prices availabl
 
 Use the code below to change the cryptocurrency price you want to return and make a new API request:
 
-```{r hitbtc_exercise_data_pull, exercise=TRUE}
+```{r hitbtc_exercise_data_pull, exercise=TRUE, message=FALSE, warning=FALSE}
 # Change the cryptocurrency you want to return prices for:
 cryptocurrency <- "ETH"
 # Build the url for the API request
@@ -227,6 +229,67 @@ decentraland_price$bid
 In all of the previous examples we made specific requests to different URLs to return some data. When making the request, if we are only interested in returning one field, for example only the company logo from the GitHub job board, we would have to request a lot of redundant information to get to the single piece of information that we are interested in.
 
 GraphQL helps solve this problem, and allows for a company/entity to provide an API where the user is able to specify the specific fields they want to return when making their API request, which, depending on the specific situation, can be much more efficient for both the developer of the API and the user.
+
+### GraphQL Example
+
+TODO - Introduce SpaceX example and interactive explorer
+
+```{r, out.height="800px", out.width="100%"}
+include_url("https://api.spacex.land/graphql/")
+```
+
+
+TODO - Explain SpaceX example below and how you can pick and choose any fields to construct your own request rather than pulling from multiple endpoints and filtering things down to what is needed.
+
+```{r, warning=FALSE, message=FALSE}
+library(ghql)
+# Create GraphQL connection
+con <- GraphqlClient$new(
+  url = "https://api.spacex.land/graphql/"
+)
+# Initialize empty query
+qry <- Query$new()
+# Example Query
+qry$query('mydata', '{
+  launchesPast(order: "launch_date_local") {
+    mission_name
+    launch_date_local
+    launch_site {
+      site_name_long
+    }
+    links {
+      video_link
+    }
+  }
+}')
+# Query to object
+spacex_data <- con$exec(qry$queries$mydata)
+# Parse query
+spacex_data <- fromJSON(spacex_data)
+# Convert to tibble
+spacex_data <- as_tibble(spacex_data)
+# Unnest the data
+spacex_data <- unnest(spacex_data)
+# Show data
+spacex_data
+```
+
+We can programmatically show the video associated with the most recent launch:
+```{r}
+include_graphics(spacex_data$links$video_link[[1]])
+```
+
+<!-- Unrelated so keep this commented out, but could extract the date the video was uploaded to youtube using rvest: -->
+<!-- ```{r} -->
+<!-- library(rvest) -->
+<!-- # Read the html page through rvest -->
+<!-- youtube_url <- read_html(spacex_data$links$video_link[[1]]) -->
+<!-- # Print the date the video was published on -->
+<!-- as.character(html_nodes(youtube_url, 'meta[itemprop="datePublished"]') %>%  -->
+<!--                       html_attr("content")) -->
+<!-- ``` -->
+
+
 
 ### thegraph (GRT)
 

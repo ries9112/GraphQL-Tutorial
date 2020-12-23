@@ -5,8 +5,8 @@ account: predictcrypto
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3425219
-bundleId: 4021019
+bundleId: 4021700
 url: https://predictcrypto.shinyapps.io/graphql-tutorial/
-when: 1608692329.30666
+when: 1608711577.50457
 asMultiple: FALSE
 asStatic: FALSE
