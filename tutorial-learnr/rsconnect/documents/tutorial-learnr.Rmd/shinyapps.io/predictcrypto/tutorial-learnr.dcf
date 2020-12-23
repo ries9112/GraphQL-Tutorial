@@ -1,0 +1,12 @@
+name: tutorial-learnr
+title: tutorial-learnr
+username:
+account: predictcrypto
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3421146
+bundleId: 4019509
+url: https://predictcrypto.shinyapps.io/tutorial-learnr/
+when: 1608657567.83789
+asMultiple: FALSE
+asStatic: FALSE

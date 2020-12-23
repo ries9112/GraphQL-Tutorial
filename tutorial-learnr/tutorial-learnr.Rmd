@@ -5,61 +5,309 @@ output:
     theme: spacelab
     progressive: true
 runtime: shiny_prerendered
+bibliography: packages.bib
 ---
 
 ```{r setup, include=FALSE}
 library(learnr)
-knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(anytime)
+```
+
+<!-- css below doesn't show anything, it limits the code chunks to a certain size in case any of the results show really large outputs -->
+
+```{css, echo=FALSE}
+pre {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+pre[class] {
+  max-height: 200px;
+}
 ```
 
 ## APIs Introduction
 
-Add here
+An API is a tool that anyone can create to share data. APIs are frequently created by companies to allow developers to create software that allows users to interact with their services. Some are more complex than others, so for the purposes of this tutorial **we will only use APIs that require no authentication**.
 
+APIs are meant to be accessible regardless of the programming language used. The data can be accessed through a URL the same way you would access a website, but typically returns very light text in the JSON format, which can then be manipulated to get the data into the correct form based on the given programming language used. APIs basically provide a way for anyone to interact with a service through code, which can be as simple as pulling some data, or more complex, for example to programmatically trigger a trade on a cryptocurrency exchange (or stock trading for that matter).
 
-## Decentraland
+### API Usage in R
 
-Dankest spot in all the land:
+<!-- If needed, list of postman public endpoints that do not require authentication: https://documenter.getpostman.com/view/8854915/Szf7znEe -->
 
-```{r echo=F}
-knitr::include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
+TODO - add context around first simple example
+
+Let's start with the url to the API endpoint we want to connect to:
+
+```{r}
+url <- "https://www.anapioficeandfire.com/api/houses"
 ```
 
-### Exercise 
+Now we can use the `httr` [[@R-httr]](<https://CRAN.R-project.org/package=httr>) package to make a **GET** request to receive data from the API:
 
-The code below can be used to retrieve the coordinates to the Predict Crypto HQ in Decentraland. 
+```{r, message=F}
+library(httr)
+api_request <- GET(url)
+```
 
-1. First, run the code to produce the same map as shown above for the coordinates (33, 6). Simply **press the green "Run Code" button to show the results**.
+TODO - here mention **POST** requests?
 
-2. Then, change the url below to find the center of the map (0, 0) by replacing the numbers 33 and 6 in the link below with 0's.
+If we view the result of the GET request we made, we will see a summary of the results of the request:
+
+```{r}
+api_request
+```
+
+The result **`Status: 200`** indicates our request was successful. If the request we made was not successful, we would get a different status code, and we could write the logic in our code accordingly to deal with these outcomes. See [this link for a full list of typical status codes and what they would mean](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status).
+
+Because we are interested in the actual content of the request, we can use the function `content()` from the `httr` package on the API request we made and retrieve the text of the content:
+
+```{r}
+# Get the data from the url
+example_data <- content(api_request, as='text')
+# show the data in its raw format
+example_data
+```
+
+When dealing with APIs the data will often be in the **JSON** format, which is the output we showed above, and usually needs to be manipulated into a format the user is used to working with. We can use the `jsonlite` [[@R-jsonlite]](<https://arxiv.org/abs/1403.2805>) package to easily convert the data from the JSON format to being a dataframe which is the standard way of storing tabular data in R by using the `fromJSON()` function:
+
+```{r, message=F}
+library(jsonlite)
+# Convert from JSON to dataframe
+example_data <- fromJSON(example_data)
+# Show dataframe
+example_data
+```
+
+TODO - add references for `httr` and `jsonlite` packages here
+
+### Example - GitHub Job Board API
+
+TODO - add context here
+
+```{r}
+url <- "https://jobs.github.com/positions.json"
+# Get the data from the url and convert to dataframe
+github_jobs <- fromJSON(content(GET(url), as='text'))
+# Show data
+github_jobs
+```
+
+When we are interested in a specific subset of the data, there are usually ways to modify the request to return the data we need. For example, rather than returning all job postings we could make a request to only get jobs with the location set to New York. To do this, we can add the text `?location=new+york` to the url of the API request:
+
+```{r}
+# Modify the url for the API request for New York location
+url <- paste0(url, "?location=new+york")
+# Get the data from the url and convert to dataframe
+github_jobs_nyc <- fromJSON(content(GET(url), as='text'))
+# Show data
+github_jobs_nyc
+```
+
+Use the arrow in the top right corner of the table above to see the content of the different columns. Let's take a closer look at the field `company_logo` which contains the url address to the company logo associated with the job listing:
+
+```{r}
+github_jobs$company_logo
+```
+
+By making a request at this url, we can display the image. See the example below showing the **first** company logo of the data:
+
+```{r,out.height="180px", out.width="300px", error=T}
+include_graphics(github_jobs$company_logo[[1]])
+```
+
+You can also navigate to the url for the job listing: `r github_jobs$url[[1]]`
+
+Play around with the results of the API request we made. The example below converts the `created_at` field to a date-time object, and returns the maximum value, meaning the date and time the most recent job posting was created:
+
+```{r github_results, exercise=TRUE}
+max( anytime(github_jobs$created_at) )
+```
+
+```{r github_results-hint}
+# Show the logo of the 5th job listing
+include_graphics(github_jobs$company_logo[[5]])
+```
+
+To give another example, we could also return results that match the text ***python*** in their description:
+
+```{r}
+fromJSON(content(GET("https://jobs.github.com/positions.json?description=python"), as='text'))
+```
+
+Notice that on our end we do not need to worry about storing any information or creating any infrastructure, for example we do not need to worry about the difficulties that may come with storing a large amount of images and data, we can simply retrieve specifically what we need.
+
+Towards the end of this tutorial you will learn about a newer technology that is similar to APIs called **GraphQL** which not only allows the user to specify the subset of the data they want to retrieve, but also allows the user to specify which fields to return for the request. For example, if we were only interested in displaying the company logos for the job listings, rather than pulling all of the fields associated with the API request we could be more efficient and create a request that only gives the one field. Before learning how to connect to and use a GraphQL endpoint, move on to the next section to get more practice using regular APIs, this time in the context of collecting prices from the cryptocurrency markets.
+
+## Cryptocurrency Data Examples
+
+### Price of Bitcoin
+
+<!-- One more example, crypto data: -->
+
+<!-- https://api.coindesk.com/v1/bpi/currentprice.json -->
+
+```{r, message=FALSE, warning=FALSE}
+url <- "https://api.coindesk.com/v1/bpi/currentprice.json"
+# Get the data from the url
+bitcoin_price <- content(GET(url), as='text')
+# Convert from JSON to dataframe
+bitcoin_price <- fromJSON(bitcoin_price)
+```
+
+Now we can show the current price of Bitcoin in USD:
+
+```{r}
+bitcoin_price$bpi$USD$rate
+```
+
+And when the price was last updated:
+
+```{r}
+bitcoin_price$time$updated
+```
+
+### HitBTC Exchange - Price of Decentraland (MANA)
+
+The price we showed for Bitcoin is a simplified way of thinking of the price of a cryptocurrency and was the average price across many exchanges. In reality though, the market on an individual exchange is more complicated than a single price, and is instead made up of constantly evolving orders of people who are looking to buy and people who are looking to sell. Users submit their orders to the **order book** and the exchange takes care of filling orders matching buyers and sellers based on their designated price. We can use the API for the [HitBTC exchange](https://hitbtc.com/) to return the 100 most favorable prices on each side of the current order book for the Decentraland (MANA) cryptocurrency:
+
+```{r, message=FALSE, warning=FALSE}
+url <- "https://api.hitbtc.com/api/2/public/orderbook/MANAUSD"
+# Get the data from the url
+decentraland_price <- content(GET(url), as='text')
+# Convert from JSON to dataframe
+decentraland_price <- fromJSON(decentraland_price)
+```
+
+The `ask` column gives the current 100 open orders with the lowest asking price, meaning these orders are waiting for someone to purchase the cryptocurrency at the given price point:
+
+```{r}
+decentraland_price$ask
+```
+
+The `bid` price is always going to be lower than orders on the `ask` side of the orderbook, because the second someone tries to purchase the cryptocurrency at a price that is higher than the lowest `ask` price, the `bid` order will immediately be filled:
+
+```{r}
+decentraland_price$bid
+```
+
+We can think of the intersection between the `ask` and the `bid` prices available on the orderbook as the current price. Going back to the example from earlier with Bitcoin's price, we have now seen that this is a bit of a construct because the price of Bitcoin not only depends on the individual exchange, but in practice there is a difference between the price you can purchase Bitcoin at and the price you can sell it for. Because Bitcoin has a large amount of liquidity, this difference tends to be intangible, but if trading other cryptocurrencies with less volume, this can become a meaningful difference.
+
+Use the code below to change the cryptocurrency price you want to return and make a new API request:
+
+```{r hitbtc_exercise_data_pull, exercise=TRUE}
+# Change the cryptocurrency you want to return prices for:
+cryptocurrency <- "ETH"
+# Build the url for the API request
+url <- paste0("https://api.hitbtc.com/api/2/public/orderbook/",cryptocurrency,"USD")
+# Get the data from the url
+decentraland_price <- content(GET(url), as='text')
+# Convert from JSON to dataframe
+decentraland_price <- fromJSON(decentraland_price)
+# Show the lowest `ask` price at which we could purchase the cryptocurrency:
+decentraland_price$ask
+```
+
+```{r hitbtc_exercise_data_pull-hint}
+# Change the cryptocurrency you want to return prices for:
+cryptocurrency <- "BTC"
+url <- paste0("https://api.hitbtc.com/api/2/public/orderbook/",cryptocurrency,"USD")
+# Get the data from the url
+decentraland_price <- content(GET(url), as='text')
+# Convert from JSON to dataframe
+decentraland_price <- fromJSON(decentraland_price)
+# Show the highest `bid` price at which we could sell the cryptocurrency:
+decentraland_price$bid
+```
+
+## GraphQL
+
+In all of the previous examples we made specific requests to different URLs to return some data. When making the request, if we are only interested in returning one field, for example only the company logo from the GitHub job board, we would have to request a lot of redundant information to get to the single piece of information that we are interested in.
+
+GraphQL helps solve this problem, and allows for a company/entity to provide an API where the user is able to specify the specific fields they want to return when making their API request, which, depending on the specific situation, can be much more efficient for both the developer of the API and the user.
+
+### thegraph (GRT)
+
+TODO - here add more background info on GRT as introduction before talking more about it in the next section
+
+## the graph - GRT
+
+TODO - here details on GRT
+
+```{r, echo=F}
+knitr::include_url('https://thegraph.com/explorer/subgraph/decentraland/marketplace')
+```
+
+## Interact with GRT blockchain
+
+TODO - background info on GRT allowing interaction with any Ethereum smart contract
+
+### Decentraland
+
+TODO - Introduce decentraland here
+
+Within Decentraland, we own the digital real estate located at the coordinates (33, 6), which you can visit for yourself here: <https://play.decentraland.org/?position=33%2C6>
+
+```{r}
+include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
+```
+
+### Exercise
+
+The code below can be used to retrieve the coordinates to the Predict Crypto HQ in Decentraland.
+
+1.  First, run the code to produce the same map as shown above for the coordinates (33, 6). Simply **press the green "Run Code" button to show the results**.
+
+2.  Then, change the url below to find the center of the map (0, 0) by replacing the numbers 33 and 6 in the link below with 0's.
 
 ```{r show-map, exercise=TRUE, exercise.lines = 2}
-knitr::include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
+include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
 ```
 
 ```{r show-map-hint}
-knitr::include_graphics("https://api.decentraland.org/v1/parcels/0/0/map.png")
-
+include_graphics("https://api.decentraland.org/v1/parcels/0/0/map.png")
 ```
 
-A copy of the Predict Crypto HQ is also located at the coordinates (120, -21). Feel free to find it on the map using the interactive code chunk above, or navigate to the location inside the game itself: 
+A copy of the Predict Crypto HQ is also located at the coordinates (120, -21). Feel free to find it on the map using the interactive code chunk above, or navigate to the location inside the game itself: <https://play.decentraland.org/?position=120%2C-21>
 
+You can access the Decentraland game itself below, or by clicking the link above and experiencing it in its own browser window. The url has the coordinates embedded into it, so you will be brought directly to the Predict Crypto HQ within Decentraland.
+
+```{r decentraland_embed, out.width="100%", echo=FALSE}
+include_url('https://play.decentraland.org/?position=33%2C6',height = '550px')
+```
 
 <!-- In case I need to remember syntax for a quiz: -->
-<!-- ```{r quiz} -->
-<!-- quiz( -->
-<!--   question("Which package contains functions for installing other R packages?", -->
-<!--     answer("base"), -->
-<!--     answer("tools"), -->
-<!--     answer("utils", correct = TRUE), -->
-<!--     answer("codetools") -->
-<!--   ), -->
-<!--   question("Which of the R packages listed below are used to create plots?", -->
-<!--     answer("lattice", correct = TRUE), -->
-<!--     answer("tools"), -->
-<!--     answer("stats"), -->
-<!--     answer("grid", correct = TRUE) -->
-<!--   ) -->
-<!-- ) -->
-<!-- ``` -->
 
+<!-- ```{r quiz} -->
+
+<!-- quiz( -->
+
+<!--   question("Which package contains functions for installing other R packages?", -->
+
+<!--     answer("base"), -->
+
+<!--     answer("tools"), -->
+
+<!--     answer("utils", correct = TRUE), -->
+
+<!--     answer("codetools") -->
+
+<!--   ), -->
+
+<!--   question("Which of the R packages listed below are used to create plots?", -->
+
+<!--     answer("lattice", correct = TRUE), -->
+
+<!--     answer("tools"), -->
+
+<!--     answer("stats"), -->
+
+<!--     answer("grid", correct = TRUE) -->
+
+<!--   ) -->
+
+<!-- ) -->
+
+<!-- ``` -->

@@ -1,0 +1,12 @@
+name: graphql-tutorial
+title: graphql-tutorial
+username:
+account: predictcrypto
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3425219
+bundleId: 4021019
+url: https://predictcrypto.shinyapps.io/graphql-tutorial/
+when: 1608692329.30666
+asMultiple: FALSE
+asStatic: FALSE
