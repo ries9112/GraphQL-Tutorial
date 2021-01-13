@@ -1,0 +1,13 @@
+name: api-graphql-tutorial
+title: api-graphql-tutorial
+username:
+account: predictcrypto
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3437385
+bundleId: 4065005
+url: https://predictcrypto.shinyapps.io/api-graphql-tutorial/
+when: 1609949677.18906
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: tutorial-learnr.html|learnr-folder-for-debug

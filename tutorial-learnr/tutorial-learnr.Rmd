@@ -1,5 +1,5 @@
 ---
-title: "GraphQL Tutorial"
+title: "API & GraphQL Tutorial"
 output: 
   learnr::tutorial:
     theme: spacelab
@@ -11,14 +11,37 @@ bibliography: packages.bib
 ```{r setup, include=FALSE}
 library(learnr)
 library(knitr)
-library(anytime)
 library(tibble)
 library(tidyr)
+library(httr)
+library(jsonlite)
+library(reticulate)
+library(dplyr)
+# set scientific notation
+options(scipen=999)
+
+# setup data needed at a global level for exercise chunks:
+url <- "https://jobs.github.com/positions.json"
+# Get the data from the url and convert to dataframe
+github_jobs <- fromJSON(content(GET(url), as='text'))
+# Modify the url for the API request for New York location
+url <- paste0(url, "?location=new+york")
+# Get the data from the url and convert to dataframe
+github_jobs_nyc <- fromJSON(content(GET(url), as='text'))
+
+# setup orderbook as global variable
+cryptocurrency <- "BTC"
+# Build the url for the API request
+url <- paste0("https://api.hitbtc.com/api/2/public/orderbook/",cryptocurrency,"USD")
+# Get the data from the url
+orderbook <- content(GET(url), as='text')
+# Convert from JSON to dataframe
+orderbook <- fromJSON(orderbook)
 ```
 
 <!-- css below doesn't show anything, it limits the code chunks to a certain size in case any of the results show really large outputs -->
 
-```{css, echo=FALSE}
+```{css adjust_height, echo=FALSE}
 pre {
   max-height: 400px;
   overflow-y: auto;
@@ -31,34 +54,36 @@ pre[class] {
 
 ## APIs Introduction
 
-An API is a tool that anyone can create to share data. APIs are frequently created by companies to allow developers to create software that allows users to interact with their services. Some are more complex than others, so for the purposes of this tutorial **we will only use APIs that require no authentication**.
+An API is a tool that helps share data/information with anyone. APIs are frequently created by companies to allow developers to create software that allows users to interact with their services. Some are more complex than others, so for the purposes of this tutorial **we will only use APIs that require no authentication**.
 
-APIs are meant to be accessible regardless of the programming language used. The data can be accessed through a URL the same way you would access a website, but typically returns very light text in the JSON format, which can then be manipulated to get the data into the correct form based on the given programming language used. APIs basically provide a way for anyone to interact with a service through code, which can be as simple as pulling some data, or more complex, for example to programmatically trigger a trade on a cryptocurrency exchange (or stock trading for that matter).
+The word API stands for **A**pplication **P**rogramming **I**nterface. APIs are meant to be accessible regardless of the programming language used. The data can be accessed through a URL the same way you would access a website, but typically returns very light text in the JSON format, which we will have to then manipulate to a format that works better in R and Python which will look like a data table with rows and columns. APIs provide a way for anyone to interact with a service through code, which can be as simple as pulling some data, or more complex, for example to programmatically trigger a trade on a cryptocurrency exchange. APIs are used by a large number of entities for different purposes, for example the US government provides data that anyone can perform research on: https://www.data.gov/developers/apis (which we will not use in this tutorial because it requires the user to request a free API "key" to authenticate).
+
+<!-- To give another concrete example of an API, Strava - add this example? Discussing how you can use their app to track your progress, or create your own reports - could give example using blog post shared on the R Strava group, but obviously would need to keep that part of the code hidden if posting to GitHub -->
 
 ### API Usage
 
 <!-- If needed, list of postman public endpoints that do not require authentication: https://documenter.getpostman.com/view/8854915/Szf7znEe -->
 
-TODO - add context around first simple example
+Let's start with a simple example relating to the TV show Game of Thrones. We can get information relating to the different houses by navigating to this url: https://www.anapioficeandfire.com/api/houses
 
-Let's start with the url to the API endpoint we want to connect to:
+The webpage is shown below:
 
-```{r}
-url <- "https://www.anapioficeandfire.com/api/houses"
+```{r show_GoT_url, echo=F}
+knitr::include_url("https://www.anapioficeandfire.com/api/houses")
 ```
 
-Now we can use the `httr` [[@R-httr]](<https://CRAN.R-project.org/package=httr>) package to make a **GET** request to receive data from the API:
+In order to get this information into R or another programming language, we will need to perform a ***GET*** request to retrieve the data from the url above. We can use the `httr` [[@R-httr]](<https://CRAN.R-project.org/package=httr>) package and use the **`GET`** function to receive data from the API:
 
-```{r, message=F}
+```{r get_GoT, message=F}
 library(httr)
-api_request <- GET(url)
+api_request <- GET("https://www.anapioficeandfire.com/api/houses")
 ```
 
-TODO - here mention **POST** requests?
+Using a GET request we can retrieve the data that we are interested in. APIs also sometimes allow users to make **POST** requests which allows the user to **send** data to the service rather than receiving it. Doing a POST requires the user to be authenticated, so in this tutorial we will only be doing GET requests using public API *endpoints*. An endpoint being a url like the one we used above.
 
-If we view the result of the GET request we made, we will see a summary of the results of the request:
+If we view the result of the GET request we made, we will see a summary of the results of the request rather than the results themselves:
 
-```{r}
+```{r show_GoT_req}
 api_request
 ```
 
@@ -66,40 +91,57 @@ The result **`Status: 200`** indicates our request was successful. If the reques
 
 Because we are interested in the actual content of the request, we can use the function `content()` from the `httr` package on the API request we made and retrieve the text of the content:
 
-```{r}
+```{r show_GoT_content}
 # Get the data from the url
 example_data <- content(api_request, as='text')
 # show the data in its raw format (not yet usable)
 example_data
 ```
 
-When dealing with APIs the data will often be in the **JSON** format, which is the format of the output shown above, and usually needs to be manipulated into a format the user is used to working with. In our case we can use the `jsonlite` [[@R-jsonlite]](<https://arxiv.org/abs/1403.2805>) package to easily convert the data from the JSON format to a dataframe which is the standard way of storing tabular data in R by using the `fromJSON()` function:
+In order to convert the data to a tabular format with rows and columns, we can use the `jsonlite` [[@R-jsonlite]](<https://arxiv.org/abs/1403.2805>) package to easily convert the JSON format to a dataframe (the standard way of storing tabular data in R and what Python's pandas uses) by using the `fromJSON()` function:
 
-```{r, message=F}
+```{r convert_GoT_show_df, message=FALSE, eval=FALSE}
 library(jsonlite)
 # Convert from JSON to dataframe
 example_data <- fromJSON(example_data)
 # Show dataframe
 example_data
 ```
+***Use the arrow in the top right of the table to view the rest of the columns.***
 
-TODO - add references for `httr` and `jsonlite` packages here
+<!-- Start by showing name and region instead of url which takes up a lot of room, better default view: -->
+
+```{r convert_GoT_show_df-hidden, echo=FALSE}
+library(jsonlite)
+# Convert from JSON to dataframe
+example_data <- fromJSON(example_data)
+# Show dataframe
+select(example_data, name, region, url, coatOfArms, words, titles, seats, currentLord, heir, 
+       overlord, founded, founder, diedOut, ancestralWeapons, cadetBranches, swornMembers)
+```
 
 ### Example - GitHub Job Board API
 
-TODO - add context here
+The first example given used data that does not update over time, but in many cases APIs can be used to collect data that evolves over time. To illustrate this point, the example below shows the most recent jobs posted to the [GitHub jobs board](https://jobs.github.com/) as of the moment this tutorial was launched:
 
-```{r}
+```{r pull_github_jobs_data}
 url <- "https://jobs.github.com/positions.json"
 # Get the data from the url and convert to dataframe
 github_jobs <- fromJSON(content(GET(url), as='text'))
 # Show data
-github_jobs
+github_jobs 
+```
+***The results are limited to the most recent 50 jobs posted.***
+
+To illustrate the point that the data refreshes over time, let's just show the job name, when it was posted, and the url to the job posting.
+
+```{r github_jobs_show_date_posted}
+select(github_jobs, created_at, title, url)
 ```
 
 When we are interested in a specific subset of the data, there are usually ways to modify the request to return the data we need. For example, rather than returning all job postings we could make a request to only get jobs with the location set to New York. To do this, we can add the text `?location=new+york` to the url of the API request:
 
-```{r}
+```{r github_jobs_nyc}
 # Modify the url for the API request for New York location
 url <- paste0(url, "?location=new+york")
 # Get the data from the url and convert to dataframe
@@ -110,22 +152,27 @@ github_jobs_nyc
 
 Use the arrow in the top right corner of the table above to see the content of the different columns. Let's take a closer look at the field `company_logo` which contains the url address to the company logo associated with the job listing:
 
-```{r}
+```{r remove_missing_logos, include=F}
+github_jobs <- tidyr::drop_na(github_jobs, company_logo)
+```
+
+
+```{r show_logo}
 github_jobs$company_logo
 ```
 
-By making a request at this url, we can display the image. See the example below showing the **first** company logo of the data:
+By making a request at this url, we can display the image. See the example below showing the **first** company logo of the data (if there is one):
 
-```{r,out.height="180px", out.width="300px", error=T}
+```{r show_logo_first_element, out.height="180px", out.width="300px", error=T}
 include_graphics(github_jobs$company_logo[[1]])
 ```
 
 You can also navigate to the url for the job listing: `r github_jobs$url[[1]]`
 
-Play around with the results of the API request we made. The example below converts the `created_at` field to a date-time object, and returns the maximum value, meaning the date and time the most recent job posting was created:
+Play around with the results of the API request we made. The example below returns the maximum value of the `created_at` field, meaning the date and time the most recent job posting was created:
 
 ```{r github_results, exercise=TRUE}
-max( anytime(github_jobs$created_at) )
+max(github_jobs$created_at)
 ```
 
 ```{r github_results-hint}
@@ -135,7 +182,7 @@ include_graphics(github_jobs$company_logo[[5]])
 
 To give another example, we could also return results that match the text ***python*** in their description:
 
-```{r}
+```{r show_github_python_jobs}
 fromJSON(content(GET("https://jobs.github.com/positions.json?description=python"), as='text'))
 ```
 
@@ -147,11 +194,15 @@ Towards the end of this tutorial you will learn about a newer technology that is
 
 ### Price of Bitcoin
 
+There are several free APIs we can use to retrieve cryptocurrency prices. 
+
+As a first example, let's get the latest price of Bitcoin according to the website coindesk.com from the url: https://api.coindesk.com/v1/bpi/currentprice.json
+
 <!-- One more example, crypto data: -->
 
 <!-- https://api.coindesk.com/v1/bpi/currentprice.json -->
 
-```{r, message=FALSE, warning=FALSE}
+```{r pull_BTC_price, message=FALSE, warning=FALSE}
 url <- "https://api.coindesk.com/v1/bpi/currentprice.json"
 # Get the data from the url
 bitcoin_price <- content(GET(url), as='text')
@@ -161,68 +212,157 @@ bitcoin_price <- fromJSON(bitcoin_price)
 
 Now we can show the current price of Bitcoin in USD:
 
-```{r}
+```{r show_BTC_price}
 bitcoin_price$bpi$USD$rate
 ```
 
 And when the price was last updated:
 
-```{r}
+```{r show_BTC_data_refresh}
 bitcoin_price$time$updated
 ```
 
-### HitBTC Exchange - Price of Decentraland (MANA)
+### HitBTC Exchange
 
-The price we showed for Bitcoin is a simplified way of thinking of the price of a cryptocurrency and was the average price across many exchanges. In reality though, the market on an individual exchange is more complicated than a single price, and is instead made up of constantly evolving orders of people who are looking to buy and people who are looking to sell. Users submit their orders to the **order book** and the exchange takes care of filling orders matching buyers and sellers based on their designated price. We can use the API for the [HitBTC exchange](https://hitbtc.com/) to return the 100 most favorable prices on each side of the current order book for the Decentraland (MANA) cryptocurrency:
+The price we showed for Bitcoin is a simplified way of thinking of the price of a cryptocurrency and was the average price across many exchanges. In reality though, the market on an individual exchange is more complicated than a single price, and is instead made up of constantly evolving orders of people who are looking to buy and people who are looking to sell. Users submit their orders to the **order book** and the exchange takes care of filling orders matching buyers and sellers based on their designated price. We can use the API for the [HitBTC exchange](https://hitbtc.com/) to return the 100 most favorable prices on each side of the current order book for Bitcoin (using the BTC/USD trading pair):
 
-```{r, message=FALSE, warning=FALSE}
-url <- "https://api.hitbtc.com/api/2/public/orderbook/MANAUSD"
+```{r HitBTC_price, message=FALSE, warning=FALSE}
+url <- "https://api.hitbtc.com/api/2/public/orderbook/BTCUSD"
 # Get the data from the url
-decentraland_price <- content(GET(url), as='text')
+orderbook <- content(GET(url), as='text')
 # Convert from JSON to dataframe
-decentraland_price <- fromJSON(decentraland_price)
+orderbook <- fromJSON(orderbook)
+# Show the new data
+orderbook
 ```
 
 The `ask` column gives the current 100 open orders with the lowest asking price, meaning these orders are waiting for someone to purchase the cryptocurrency at the given price point:
 
-```{r}
-decentraland_price$ask
+```{r ask_price}
+orderbook$ask
 ```
 
 The `bid` price is always going to be lower than orders on the `ask` side of the orderbook, because the second someone tries to purchase the cryptocurrency at a price that is higher than the lowest `ask` price, the `bid` order will immediately be filled:
 
-```{r}
-decentraland_price$bid
+```{r bid_price}
+orderbook$bid
 ```
 
 We can think of the intersection between the `ask` and the `bid` prices available on the orderbook as the current price. Going back to the example from earlier with Bitcoin's price, we have now seen that this is a bit of a construct because the price of Bitcoin not only depends on the individual exchange, but in practice there is a difference between the price you can purchase Bitcoin at and the price you can sell it for. Because Bitcoin has a large amount of liquidity, this difference tends to be intangible, but if trading other cryptocurrencies with less volume, this can become a meaningful difference.
 
-Use the code below to change the cryptocurrency price you want to return and make a new API request:
+```{r quiz1, echo=FALSE}
+quiz(caption = "Answer below:",
+  question("What is the current cheapest price you can buy Bitcoin for on the HitBTC exchange?",
+    answer(as.character(as.numeric(orderbook$ask[1,]$price)+213.01)),
+    answer(as.character(as.numeric(orderbook$bid[1,]$price)+0.01)),
+    answer(as.character(as.numeric(orderbook$ask[1,]$price)), correct = TRUE),
+    answer(as.character(as.numeric(orderbook$ask[1,]$price)-40.03))
+  )
+)
+```
+
+Use the code below to change the cryptocurrency price you want to return and make a new API request. For example, you could modify the code to run for the "BTC" cryptocurrency instead of "ETH" and run the code again (see hint):
 
 ```{r hitbtc_exercise_data_pull, exercise=TRUE, message=FALSE, warning=FALSE}
 # Change the cryptocurrency you want to return prices for:
 cryptocurrency <- "ETH"
-# Build the url for the API request
+
+# Build the url for the API request:
 url <- paste0("https://api.hitbtc.com/api/2/public/orderbook/",cryptocurrency,"USD")
+
 # Get the data from the url
-decentraland_price <- content(GET(url), as='text')
+orderbook <- content(GET(url), as='text')
+
 # Convert from JSON to dataframe
-decentraland_price <- fromJSON(decentraland_price)
+orderbook <- fromJSON(orderbook)
+
 # Show the lowest `ask` price at which we could purchase the cryptocurrency:
-decentraland_price$ask
+orderbook$ask
 ```
 
 ```{r hitbtc_exercise_data_pull-hint}
 # Change the cryptocurrency you want to return prices for:
 cryptocurrency <- "BTC"
+# Build the url for the API request
 url <- paste0("https://api.hitbtc.com/api/2/public/orderbook/",cryptocurrency,"USD")
 # Get the data from the url
-decentraland_price <- content(GET(url), as='text')
+orderbook <- content(GET(url), as='text')
 # Convert from JSON to dataframe
-decentraland_price <- fromJSON(decentraland_price)
+orderbook <- fromJSON(orderbook)
 # Show the highest `bid` price at which we could sell the cryptocurrency:
-decentraland_price$bid
+orderbook$bid
 ```
+
+<!-- Both collecting the price of a cryptocurrency from the perspective of the orderbook, and getting the price at a global level have legitimate use-cases -->
+
+### Coinpaprika API
+
+Congrats on learning about using APIs through R! If you are interested in cryptocurrency market data, we recommend checking out the free API by the the website coinpaprika.com, which is **free and has a huge amount of functionality**. See the documentation for the API here: https://api.coinpaprika.com/
+
+```{r coinpaprika_api_docs, echo=F, out.width="100%"}
+knitr::include_url("https://api.coinpaprika.com/")
+```
+
+For example, here is a request for all markets that Bitcoin trades on (limited to 1,000 results):
+
+```{r btc_exchanges_coinpaprika, warning=F, message=F}
+as.data.frame(fromJSON(content(GET("https://api.coinpaprika.com/v1/coins/btc-bitcoin/markets"), as='text')))
+```
+
+Try to modify the request below to show the **`twitter`** endpoint for the **`eth-ethereum`** cryptocurrency (use the hint as needed):
+
+```{r coinpaprika_sandbox, warning=F, message=F, exercise=T}
+# Change the url below to a different API endpoint
+url <- "https://api.coinpaprika.com/v1/coins/btc-bitcoin/exchanges" # <- change the url
+# Pull, parse, and display the data (no need to change the code below)
+as.data.frame(fromJSON(content(GET(url), as='text')))
+```
+
+```{r coinpaprika_sandbox-hint, hint=T}
+# This example changed the endpoint to be for twitter data and for Ethereum
+url <- "https://api.coinpaprika.com/v1/coins/eth-ethereum/twitter" # <- twitter example
+# Pull, parse, and display the data (no need to change the code below)
+as.data.frame(fromJSON(content(GET(url), as='text')))
+```
+
+<!-- ## Python Example - COMMENTED OUT BECAUSE REQUEST PACKAGE NOT FOUND--> 
+
+<!-- Making an API request in Python involves the same steps that we have outlined up to this point using R, and would just involve a different set of tools. -->
+
+<!-- For an API request in Python you can use the [**`requests`** library](https://2.python-requests.org/en/master/): -->
+
+<!-- ```{python py_make_request} -->
+<!-- import requests -->
+<!-- # Make an API request -->
+<!-- python_request = requests.get("https://api.coinpaprika.com/v1/coins/btc-bitcoin/exchanges") -->
+<!-- ``` -->
+
+<!-- Like before, if we call the result we will get a summary of our request, where a code of **`200`** is a successful request: -->
+
+<!-- ```{python py_show_request} -->
+<!-- python_request -->
+<!-- ``` -->
+
+<!-- Meaning, we need to actually extract the JSON data out of our request: -->
+<!-- ```{python py_json_parse} -->
+<!-- python_request = python_request.json() -->
+<!-- # Show the data in the json format: -->
+<!-- python_request -->
+<!-- ``` -->
+
+<!-- Now we can use [**`pandas`**](https://pandas.pydata.org/) to convert the data to a dataframe: -->
+
+<!-- ```{python py_req_to_pandas} -->
+<!-- import pandas as pd -->
+<!-- python_request = pd.DataFrame(python_request) -->
+<!-- ``` -->
+
+<!-- Now we can view the results (shown from R to improve the format): -->
+
+<!-- ```{r show_python_request} -->
+<!-- py$python_request -->
+<!-- ``` -->
+
 
 ## GraphQL
 
@@ -232,21 +372,36 @@ GraphQL helps solve this problem, and allows for a company/entity to provide an 
 
 ### GraphQL Example
 
-TODO - Introduce SpaceX example and interactive explorer
+<!-- TODO - Introduce SpaceX example and interactive explorer -->
 
-```{r, out.height="800px", out.width="100%"}
+The company SpaceX offers a public GraphQL endpoint: https://api.spacex.land/graphql/ - embedded below:
+
+```{r graphql_spacex, out.height="800px", out.width="100%", echo=F}
 include_url("https://api.spacex.land/graphql/")
 ```
 
+Rather than making requests to multiple API endpoints and manipulating the data to create the dataset that is needed, GraphQL gives the user a lot more flexibility and precision for the data to return. In the link embedded above, you can use the *Explorer* on the left side of the page and use the checkboxes to decide which endpoints and columns from those endpoints to include. The middle section displays the code to use to make the GraphQL request based on the selections made. Once the play button is clicked, the query is executed and the latest results are displayed on the right side of the page. We can use the query created and displayed in the middle section of the page to create the same request using R.
 
-TODO - Explain SpaceX example below and how you can pick and choose any fields to construct your own request rather than pulling from multiple endpoints and filtering things down to what is needed.
+First, we will import the package **`ghql`** which will allow us to interact with a GraphQL endpoint:
 
-```{r, warning=FALSE, message=FALSE}
+<!-- TODO - ADD REFERENCE TO ghql -->
+
+```{r}
+# GraphQL R client (https://github.com/ropensci/ghql)
 library(ghql)
-# Create GraphQL connection
+```
+
+Next, we want to establish a connection with the GraphQL endpoint:
+
+```{r graphql_init_conn}
 con <- GraphqlClient$new(
   url = "https://api.spacex.land/graphql/"
 )
+```
+
+Now we can send a query to the GraphQL endpoint using the example given at https://api.spacex.land/graphql/:
+
+```{r first_graphql_request, warning=FALSE, message=FALSE}
 # Initialize empty query
 qry <- Query$new()
 # Example Query
@@ -255,38 +410,47 @@ qry$query('mydata', '{
     mission_name
     launch_date_local
     launch_site {
+      site_name
       site_name_long
     }
     links {
+      article_link
       video_link
     }
   }
 }')
 # Query to object
 spacex_data <- con$exec(qry$queries$mydata)
-# Parse query
+```
+
+Now that we have the results from the request, it will once again be in the JSON format, so like before we can convert the JSON format to a dataframe using the `fromJSON` function from the `jsonlite` package:
+
+```{r}
 spacex_data <- fromJSON(spacex_data)
-# Convert to tibble
-spacex_data <- as_tibble(spacex_data)
-# Unnest the data
-spacex_data <- unnest(spacex_data)
-# Show data
+```
+
+The data we retrieved this time has a strange ***nested*** structure, where we have a column like `links` which currently contains both the `article_link` and `video_link` columns. Because of this, the `fromJSON` function will return a list object instead of the expected dataframe. We can clean this up into a workable format by first using the `as_tibble()` function to convert the list to a tibble (which has similar properties to a dataframe, [find out more here](https://r4ds.had.co.nz/tibbles.html)), and using the `unnest()` function on the new result:
+
+```{r}
+spacex_data <- unnest(as_tibble(spacex_data))
+# Show data:
 spacex_data
 ```
 
-We can programmatically show the video associated with the most recent launch:
-```{r}
+We can programmatically show the video associated with the first row from the dataset:
+```{r show_spacex_video}
 include_graphics(spacex_data$links$video_link[[1]])
 ```
 
-<!-- Unrelated so keep this commented out, but could extract the date the video was uploaded to youtube using rvest: -->
+<!-- Commented out because not relevant to tutorial, but could easily extract the number of views on the video: -->
 <!-- ```{r} -->
 <!-- library(rvest) -->
 <!-- # Read the html page through rvest -->
 <!-- youtube_url <- read_html(spacex_data$links$video_link[[1]]) -->
-<!-- # Print the date the video was published on -->
-<!-- as.character(html_nodes(youtube_url, 'meta[itemprop="datePublished"]') %>%  -->
-<!--                       html_attr("content")) -->
+<!-- # Show how many views -->
+<!-- as.numeric(html_attr(html_nodes(youtube_url, -->
+<!--                                 'meta[itemprop="interactionCount"]'), -->
+<!--                      "content")) -->
 <!-- ``` -->
 
 
@@ -316,6 +480,11 @@ Within Decentraland, we own the digital real estate located at the coordinates (
 ```{r}
 include_graphics("https://api.decentraland.org/v1/parcels/33/6/map.png")
 ```
+
+
+<!-- TODO - NOTE 12/29: SHOULD MAKE SCRIPT WHERE I FIND LATEST SOLD ESTATE, SHOW IT ON A MAP AND SHOW THE $ VALUE AFTER FIRST PULLING THE LATEST PRICE OF MANA! INCLUDE FILTERS DIRECTLY IN THE GRAPHQL QUERY TO ONLY RETURN VERY SPECIFICALLY THE URL OF THE ESTATE, AND THE SELLING PRICE, LIMITING TO 1 RESULT THAT WAS A SOLD ESTATE -->
+
+
 
 ### Exercise
 
