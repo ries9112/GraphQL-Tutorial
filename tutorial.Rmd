@@ -464,19 +464,20 @@ include_graphics(spacex_data$links$video_link[[1]])
 
 
 
-### thegraph (GRT)
+### "the graph" (GRT)
 
 In the next section we will talk about how to leverage GraphQL to interact with "The Graph Network", which allows us to interact with networks built on the Ethereum blockchain and IPFS.
 
-## the graph - GRT
+## "the graph" - GRT
 
 There are a large number of applications built on Ethereum (most being ["dapps", meaning decentralized applications](https://ethereum.stackexchange.com/questions/383/what-is-a-dapp)), and because they are public blockchains, "the graph" project created a way for developers to make *"subgraphs"* that allow users to query data from smart contracts on the Ethereum blockchain through GraphQL. 
 
 For example, a vibrant virtual world owned by its users is being built on the ["Decentraland" blockchain](https://decentraland.org/), and we can query information relating to things like real estate transactions using the Decentraland subgraph made available by the graph network:
 
-```{r, echo=F}
-knitr::include_url('https://thegraph.com/explorer/subgraph/decentraland/marketplace')
+```{r, echo=F, out.width='100%'}
+knitr::include_url('https://thegraph.com/explorer/subgraph/decentraland/marketplace', height = "550px")
 ```
+*https://thegraph.com/explorer/subgraph/decentraland/marketplace*
 
 <!-- There are tools for developers to build subgraphs on any Ethereum smart contract since anything on the Ethereum blockchain is publicly accessible. You can learn more about creating subgraphs at this link: https://thegraph.com/docs/introduction For the purposes of this tutorial -->
 
@@ -484,14 +485,56 @@ knitr::include_url('https://thegraph.com/explorer/subgraph/decentraland/marketpl
 
 Why would we want to request any data from these services in the first place? As mentioned above, users can buy and sell digital real estate on Decentraland. We have been collecting data relating to these real-estate markets [TODO - ADD HERE]
 
+First, we need to initialize the connection to the GraphQL endpoint as outlined in the documentation above:
+```{r}
+con <- GraphqlClient$new(
+  url = "https://api.thegraph.com/subgraphs/name/decentraland/marketplace"
+)
+```
+
+Now we can use the default example from the page above and make the GraphQL request through R:
+```{r}
+# Initialize empty query
+qry <- Query$new()
+# Example Query
+qry$query('mydata', '{
+  counts(first: 5) {
+    id
+    orderTotal
+    orderParcel
+    orderEstate
+  }
+  orders(first: 5) {
+    id
+    category
+    nft {
+      id
+    }
+    nftAddress
+  }
+}')
+# Query to object
+decentraland_orders <- fromJSON(con$exec(qry$queries$mydata))
+# Convert to tibble and unnest the data
+decentraland_orders <- unnest(as_tibble(decentraland_orders))
+```
+
+Now we can show the results from the request:
+```{r}
+decentraland_orders
+```
+
+#### Historical Data
+
+The query we just performed above shows the current latest data that matches our request. Only having a single snapshot in time limits the analysis we are able to perform, so from this point forward we will instead use a dataset that gets pulled using GraphQL exactly as shown above where new results get appended every 12 hours using the `pins` package:
+
 ```{r}
 library(pins)
+# Register the board to pull the data from
 board_register(name = "pins_board", 
                url = "https://raw.githubusercontent.com/predictcrypto/pins/master/", 
                board = "datatxt")
-```
-
-```{r}
+# Pull the data "decentraland_market"
 decentraland_data <- pin_get(name = "decentraland_market")
 # Show the data 
 decentraland_data
@@ -517,7 +560,14 @@ We can view the contents of the `nft_image` and display the image:
 include_graphics(decentraland_data$nft_image[[1]]) 
 ```
 
-#### Answering Questions with Data
+The interaction with the smart contract, both when posting an item for sale and buying an item, is associated with a transaction on the Decentraland blockchain. The easiest way to view it, is by looking it up on the website etherscan.io. here is the link for the first:
+```{r}
+paste0('https://etherscan.io/tx/',decentraland_data$txHash[[1]])
+```
+`r paste0('https://etherscan.io/tx/',decentraland_data$txHash[[1]])`
+
+
+#### Answering Questions About the Data
 
 Let's start by answering some questions relating to the data by comparing the results by the **`category`** field. First, let's group the data by the field:
 ```{r}
@@ -525,7 +575,7 @@ Let's start by answering some questions relating to the data by comparing the re
 data_by_category <- group_by(decentraland_data, category)
 ```
 
-First, let's count the number of records by `category` using the `count()` function:
+How many records are there by category?
 ```{r}
 count(data_by_category)
 ```
@@ -535,40 +585,69 @@ Now we can calculate the average price by category:
 summarise(data_by_category, avg_price_mana = mean(price_mana))
 ```
 
+But what does the `category` even mean?
+
+- **`parcel`** - A single piece of real estate is called a `parcel`
+- **`estate`** - Multiple parcels adjacent to each other can be combined together to create a larger `estate`
+- **`wearable`** - An accessory that can be worn by users inside the Decentraland game
+- **`ens`** - `ens` stands for **E**thereum **N**ame **S**ervice which works a little bit like a domain name, but for the address of an Ethereum wallet. Within Decentraland, users can trade unique names for their characters and no two users/characters can have the same name at the same time because of the way the Ethereum Name Service works.
+
+##### Visualizations
 
 Next let's visualize the data. First we need to import the `ggplot2` package:
 ```{r}
 library(ggplot2)
 ```
 
-
 Now we can plot the prices by category using a bar plot:
 ```{r}
-ggplot(decentraland_data, aes(x=category, y=avg_price_mana)) +
+ggplot(decentraland_data, aes(x=category, y=price_mana)) +
   geom_bar(stat="identity") 
 ```
 
 The **estate** category is clearly much more expensive than the rest. Let's make a box-plot instead, and make the y-axis a logarithmic scale so we can visually compare the categories:
 ```{r decentraland_boxplot_categories}
-decentraland_boxplot <- ggplot(decentraland_data, aes(x=category, y=price_mana)) +
-                          geom_boxplot() +  
+decentraland_boxplot <- ggplot(decentraland_data, aes(x=category, y=price_mana, color=category)) +
+                          geom_boxplot() +
                           scale_y_log10()
-# Show the visualization:
+# Show the boxplot
 decentraland_boxplot
 ```
 
 We can add new elements to the `decentraland_boxplot` chart to make changes to the visual comparison:
 ```{r}
-decentraland_boxplot +
-  scale_y_log10() + 
-  geom_jitter(position=position_jitter(0.2))
+decentraland_boxplot + geom_jitter(position=position_jitter(0.2))
 ```
 
+<!-- TODO - ADD SECTION BELOW: -->
+###### How are prices trending over time?
+
+We can check how the average prices are evolving over time:
+
+**WORK IN PROGRESS**
+
+TODO - Prices over time
+
+TODO - Prices over time - facet by category
 
 
-Prices over time 
+A much more useful question for us to ask however, is how the prices **in US Dollars $** are trending since the value in MANA is based on the current exchange rate.
 
-Prices over time - facet by category
+<!-- - here remember to use pins data from HitBTC since we need historical prices instead of latest price -->
+
+**WORK IN PROGRESS**
+
+TODO - Prices USD over time
+
+TODO - Prices USD over time - facet by category
+
+
+We won't dive any deeper into this data here, but see this article for a better understanding of the way different pieces of land are priced based on their location: https://medium.com/nonfungible/short-analysis-of-decentralands-uprising-economy-1e55ac687c35
+
+Which provides a really great visual breakdown on the full Decentraland map:
+```{r, echo=F, out.width='100%', out.height='100%'}
+knitr::include_graphics("images/decentraland_global_stats.png")
+```
 
 
 <!-- Commented out because does not feel very relevant, might be better to add this as a fun note for the end indead - TODO -->
@@ -586,7 +665,7 @@ Prices over time - facet by category
 
 <!-- NOTE 01/08: Perform the last step as described above and ready to publish and share the tutorial! -->
 
-**-- WORK IN PROGRESS**
+<!-- **-- WORK IN PROGRESS** -->
 
 
 <!-- TODO - HERE start by doing higher level analysis like for example figuring out the total MANA in the current market how much people are investing and using, and grabbing latest price of MANA to compare it to real $ dollars. Use pins data to analyze and create history over 5-7 days or something along those lines. -->
