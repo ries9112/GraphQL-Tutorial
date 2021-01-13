@@ -318,7 +318,7 @@ url <- "https://api.coinpaprika.com/v1/coins/btc-bitcoin/exchanges" # <- change 
 as.data.frame(fromJSON(content(GET(url), as='text')))
 ```
 
-```{r coinpaprika_sandbox-hint, hint=T}
+```{r coinpaprika_sandbox-hint, hint=T, warning=F, message=F}
 # This example changed the endpoint to be for twitter data and for Ethereum
 url <- "https://api.coinpaprika.com/v1/coins/eth-ethereum/twitter" # <- twitter example
 # Pull, parse, and display the data (no need to change the code below)
@@ -376,8 +376,8 @@ GraphQL helps solve this problem, and allows for a company/entity to provide an 
 
 The company SpaceX offers a public GraphQL endpoint: https://api.spacex.land/graphql/ - embedded below:
 
-```{r graphql_spacex, out.height="800px", out.width="100%", echo=F}
-include_url("https://api.spacex.land/graphql/")
+```{r graphql_spacex, out.width="100%", echo=F}
+include_url("https://api.spacex.land/graphql/", height = "550px")
 ```
 
 Rather than making requests to multiple API endpoints and manipulating the data to create the dataset that is needed, GraphQL gives the user a lot more flexibility and precision for the data to return. In the link embedded above, you can use the *Explorer* on the left side of the page and use the checkboxes to decide which endpoints and columns from those endpoints to include. The middle section displays the code to use to make the GraphQL request based on the selections made. Once the play button is clicked, the query is executed and the latest results are displayed on the right side of the page. We can use the query created and displayed in the middle section of the page to create the same request using R.
@@ -387,11 +387,11 @@ First, we will import the package **`ghql`** which will allow us to interact wit
 <!-- TODO - ADD REFERENCE TO ghql -->
 
 ```{r}
-# GraphQL R client (https://github.com/ropensci/ghql)
+# GraphQL R client: https://github.com/ropensci/ghql
 library(ghql)
 ```
 
-Next, we want to establish a connection with the GraphQL endpoint:
+Next, we want to establish a connection with the GraphQL endpoint made available by SpaceX that was embedded above:
 
 ```{r graphql_init_conn}
 con <- GraphqlClient$new(
@@ -415,10 +415,6 @@ graphql_request$query('mydata', '{
   launchesPast(order: "launch_date_local") {
     mission_name
     launch_date_local
-    launch_site {
-      site_name
-      site_name_long
-    }
     links {
       article_link
       video_link
@@ -462,6 +458,72 @@ include_graphics(spacex_data$links$video_link[[1]])
 <!--                      "content")) -->
 <!-- ``` -->
 
+<!-- COMMENTED OUT EXERCISE BELOW because was not being properly detected as an exercise, not sure why -->
+<!-- Try to modify the query below using the results shown in the middle column of https://api.spacex.land/graphql/ -->
+<!-- ```{r hands-on-spacex, excercise=TRUE} -->
+<!-- # Specify the GraphQL endpoint to interact with -->
+<!-- con <- GraphqlClient$new( -->
+<!--   url = "https://api.spacex.land/graphql/" -->
+<!-- ) -->
+<!-- # Initialize a new query -->
+<!-- graphql_request <- Query$new() -->
+<!-- # Build the request using the code given at https://api.spacex.land/graphql/ (middle column) -->
+<!-- graphql_request$query('mydata', '{ -->
+<!--   launchesPast(order: "launch_date_local") { -->
+<!--     mission_name -->
+<!--     launch_date_local -->
+<!--     links { -->
+<!--       article_link -->
+<!--       video_link -->
+<!--     } -->
+<!--   } -->
+<!-- }') -->
+<!-- # Now send the request -->
+<!-- spacex_data <- con$exec(graphql_request$queries$mydata) -->
+<!-- # Conver the JSON results to a dataframe -->
+<!-- spacex_data <- fromJSON(spacex_data) -->
+<!-- # Convert the results to a tibble and unnest the result -->
+<!-- spacex_data <- unnest(as_tibble(spacex_data)) -->
+<!-- # Show the data -->
+<!-- spacex_data -->
+<!-- ``` -->
+
+<!-- ```{r hands-on-spacex-hint} -->
+<!-- # Specify the GraphQL endpoint to interact with -->
+<!-- con <- GraphqlClient$new( -->
+<!--   url = "https://api.spacex.land/graphql/" -->
+<!-- ) -->
+<!-- # Initialize a new query -->
+<!-- graphql_request <- Query$new() -->
+<!-- # Build the request using the code given at https://api.spacex.land/graphql/ (middle column) -->
+<!-- graphql_request$query('mydata', '{ -->
+<!--   capsule(id: "") { -->
+<!--     dragon { -->
+<!--       active -->
+<!--       crew_capacity -->
+<!--       description -->
+<!--       dry_mass_kg -->
+<!--       dry_mass_lb -->
+<!--       first_flight -->
+<!--       id -->
+<!--       name -->
+<!--       orbit_duration_yr -->
+<!--       sidewall_angle_deg -->
+<!--       type -->
+<!--       wikipedia -->
+<!--     } -->
+<!--   } -->
+<!-- }') -->
+<!-- # Now send the request -->
+<!-- spacex_data <- con$exec(graphql_request$queries$mydata) -->
+<!-- # Conver the JSON results to a dataframe -->
+<!-- spacex_data <- fromJSON(spacex_data) -->
+<!-- # Convert the results to a tibble and unnest the result -->
+<!-- spacex_data <- unnest(as_tibble(spacex_data)) -->
+<!-- # Show the data -->
+<!-- spacex_data -->
+<!-- ``` -->
+
 
 
 ### "the graph" (GRT)
@@ -475,7 +537,7 @@ There are a large number of applications built on Ethereum (most being ["dapps",
 For example, a vibrant virtual world owned by its users is being built on the ["Decentraland" blockchain](https://decentraland.org/), and we can query information relating to things like real estate transactions using the Decentraland subgraph made available by the graph network:
 
 ```{r, echo=F, out.width='100%'}
-knitr::include_url('https://thegraph.com/explorer/subgraph/decentraland/marketplace', height = "550px")
+include_url('https://thegraph.com/explorer/subgraph/decentraland/marketplace', height = "550px")
 ```
 *https://thegraph.com/explorer/subgraph/decentraland/marketplace*
 
@@ -492,18 +554,17 @@ con <- GraphqlClient$new(
 )
 ```
 
-Now we can use the default example from the page above and make the GraphQL request through R:
+Now we can use the default example from the page above and make the GraphQL request through R.
+
+First we need to initialize an empty query:
 ```{r}
-# Initialize empty query
 qry <- Query$new()
+```
+
+Now we can run the same query used as the default example on thegraph's website:
+```{r}
 # Example Query
 qry$query('mydata', '{
-  counts(first: 5) {
-    id
-    orderTotal
-    orderParcel
-    orderEstate
-  }
   orders(first: 5) {
     id
     category
@@ -513,16 +574,21 @@ qry$query('mydata', '{
     nftAddress
   }
 }')
-# Query to object
+```
+
+Now we can run the query and store the results in the object `decentraland_orders` and convert it as needed in the same ways we have done up to this point for results from API requests:
+```{r}
+# Run query and convert results from JSON to a dataframe
 decentraland_orders <- fromJSON(con$exec(qry$queries$mydata))
 # Convert to tibble and unnest the data
 decentraland_orders <- unnest(as_tibble(decentraland_orders))
 ```
 
-Now we can show the results from the request:
+Now we can view the results from the request:
 ```{r}
 decentraland_orders
 ```
+
 
 #### Historical Data
 
@@ -566,6 +632,22 @@ paste0('https://etherscan.io/tx/',decentraland_data$txHash[[1]])
 ```
 `r paste0('https://etherscan.io/tx/',decentraland_data$txHash[[1]])`
 
+Before answering more concrete questions using the historical data, we should also make sure to only include transactions relating to someone actually making a purchase, rather than the land/item simply being posted for sale, as the results could easily be skewed by items listed for prices that are much higher than anyone would realistically pay. We can do this by identifying rows where we have an address for the column `buyer`, but even easier than that is to filter results with the `status` of `sold`:
+```{r, include=F}
+# rows before filter
+nrowdecentraland1 <- nrow(decentraland_data)
+```
+
+```{r}
+decentraland_data <- filter(decentraland_data, status == 'sold')
+```
+
+```{r, include=F}
+# rows after filter
+nrowdecentraland2 <- nrow(decentraland_data)
+```
+
+The filtering operation above caused the data to go from `r nrowdecentraland1` rows to `r nrowdecentraland2` rows.
 
 #### Answering Questions About the Data
 
@@ -601,11 +683,12 @@ library(ggplot2)
 
 Now we can plot the prices by category using a bar plot:
 ```{r}
-ggplot(decentraland_data, aes(x=category, y=price_mana)) +
+ggplot(summarise(data_by_category, avg_price_mana = mean(price_mana)), 
+       aes(x=category, y=avg_price_mana)) +
   geom_bar(stat="identity") 
 ```
 
-The **estate** category is clearly much more expensive than the rest. Let's make a box-plot instead, and make the y-axis a logarithmic scale so we can visually compare the categories:
+Let's make a box-plot instead, and make the **y-axis a logarithmic scale** so it is easier to visually compare the categories:
 ```{r decentraland_boxplot_categories}
 decentraland_boxplot <- ggplot(decentraland_data, aes(x=category, y=price_mana, color=category)) +
                           geom_boxplot() +
@@ -642,7 +725,7 @@ TODO - Prices USD over time
 TODO - Prices USD over time - facet by category
 
 
-We won't dive any deeper into this data here, but see this article for a better understanding of the way different pieces of land are priced based on their location: https://medium.com/nonfungible/short-analysis-of-decentralands-uprising-economy-1e55ac687c35
+We won't dive any deeper into this data here, but see this article for a better understanding of the way different pieces of land (parcels) are priced based on their location: https://medium.com/nonfungible/short-analysis-of-decentralands-uprising-economy-1e55ac687c35
 
 Which provides a really great visual breakdown on the full Decentraland map:
 ```{r, echo=F, out.width='100%', out.height='100%'}
@@ -672,6 +755,7 @@ knitr::include_graphics("images/decentraland_global_stats.png")
 
 
 
+<!-- ALSO TODO - Add more interactive exercises! -->
 
 
 
@@ -739,3 +823,7 @@ knitr::include_graphics("images/decentraland_global_stats.png")
 <!-- ) -->
 
 <!-- ``` -->
+
+### References
+
+References to packages used below:
