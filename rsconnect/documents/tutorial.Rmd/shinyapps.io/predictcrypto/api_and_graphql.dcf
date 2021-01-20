@@ -5,9 +5,9 @@ account: predictcrypto
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3437382
-bundleId: 4092558
+bundleId: 4121677
 url: https://predictcrypto.shinyapps.io/api_and_graphql/
-when: 1610572913.70595
+when: 1611152140.3112
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: deploy_app.R|README.md|tutorial.html|tutorial_files|tutorial-learnr

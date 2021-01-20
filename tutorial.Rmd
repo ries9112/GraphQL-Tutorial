@@ -17,6 +17,7 @@ library(httr)
 library(jsonlite)
 library(reticulate)
 library(dplyr)
+library(glue)
 # set scientific notation
 options(scipen=999)
 
@@ -119,6 +120,16 @@ example_data <- fromJSON(example_data)
 select(example_data, name, region, url, coatOfArms, words, titles, seats, currentLord, heir, 
        overlord, founded, founder, diedOut, ancestralWeapons, cadetBranches, swornMembers)
 ```
+
+
+### This tutorial
+
+From this point forward, the results shown are updated every time the tutorial is refreshed because the data provided by the API endpoints changes over time. The tutorial was last run on:
+
+```{r}
+Sys.time()
+```
+
 
 ### Example - GitHub Job Board API
 
@@ -311,14 +322,14 @@ as.data.frame(fromJSON(content(GET("https://api.coinpaprika.com/v1/coins/btc-bit
 
 Try to modify the request below to show the **`twitter`** endpoint for the **`eth-ethereum`** cryptocurrency (use the hint as needed):
 
-```{r coinpaprika_sandbox, warning=F, message=F, exercise=T}
+```{r coinpaprika_sandbox, warning=F, message=F, exercise=TRUE}
 # Change the url below to a different API endpoint
 url <- "https://api.coinpaprika.com/v1/coins/btc-bitcoin/exchanges" # <- change the url
 # Pull, parse, and display the data (no need to change the code below)
 as.data.frame(fromJSON(content(GET(url), as='text')))
 ```
 
-```{r coinpaprika_sandbox-hint, hint=T, warning=F, message=F}
+```{r coinpaprika_sandbox-hint, hint=TRUE, warning=F, message=F}
 # This example changed the endpoint to be for twitter data and for Ethereum
 url <- "https://api.coinpaprika.com/v1/coins/eth-ethereum/twitter" # <- twitter example
 # Pull, parse, and display the data (no need to change the code below)
@@ -565,19 +576,35 @@ Now we can run the same query used as the default example on thegraph's website:
 ```{r}
 # Example Query
 qry$query('mydata', '{
-  orders(first: 5) {
-    id
+  orders(orderBy: createdAt, orderDirection: desc, first: 1000) {
     category
+    txHash
+    blockNumber
     nft {
-      id
+      owner {
+        address
+        mana
+      }
+      image
+      parcel {
+        x
+        y
+      }
+      estate{
+        size
+      }
     }
     nftAddress
+    buyer
+    price
+    status
+    createdAt
   }
 }')
 ```
 
 Now we can run the query and store the results in the object `decentraland_orders` and convert it as needed in the same ways we have done up to this point for results from API requests:
-```{r}
+```{r, warning=F, message=F}
 # Run query and convert results from JSON to a dataframe
 decentraland_orders <- fromJSON(con$exec(qry$queries$mydata))
 # Convert to tibble and unnest the data
@@ -590,7 +617,7 @@ decentraland_orders
 ```
 
 
-#### Historical Data
+### Historical Data
 
 The query we just performed above shows the current latest data that matches our request. Only having a single snapshot in time limits the analysis we are able to perform, so from this point forward we will instead use a dataset that gets pulled using GraphQL exactly as shown above where new results get appended every 12 hours using the `pins` package:
 
@@ -622,7 +649,7 @@ decentraland_data
 ```
 
 We can view the contents of the `nft_image` and display the image:
-```{r}
+```{r, out.height="50%", out.width="50%"}
 include_graphics(decentraland_data$nft_image[[1]]) 
 ```
 
@@ -642,14 +669,24 @@ nrowdecentraland1 <- nrow(decentraland_data)
 decentraland_data <- filter(decentraland_data, status == 'sold')
 ```
 
+Let's also remove duplicates
+```{r}
+decentraland_data <- distinct(decentraland_data, txHash, status, .keep_all = TRUE)
+```
+
 ```{r, include=F}
 # rows after filter
 nrowdecentraland2 <- nrow(decentraland_data)
 ```
 
-The filtering operation above caused the data to go from `r nrowdecentraland1` rows to `r nrowdecentraland2` rows.
+The two filtering operations above caused the data to go from `r nrowdecentraland1` rows to `r nrowdecentraland2` rows.
 
-#### Answering Questions About the Data
+```{r}
+decentraland_data
+```
+
+
+### Answering Questions About the Data
 
 Let's start by answering some questions relating to the data by comparing the results by the **`category`** field. First, let's group the data by the field:
 ```{r}
@@ -674,7 +711,7 @@ But what does the `category` even mean?
 - **`wearable`** - An accessory that can be worn by users inside the Decentraland game
 - **`ens`** - `ens` stands for **E**thereum **N**ame **S**ervice which works a little bit like a domain name, but for the address of an Ethereum wallet. Within Decentraland, users can trade unique names for their characters and no two users/characters can have the same name at the same time because of the way the Ethereum Name Service works.
 
-##### Visualizations
+### Visualizations
 
 Next let's visualize the data. First we need to import the `ggplot2` package:
 ```{r}
@@ -703,34 +740,189 @@ decentraland_boxplot + geom_jitter(position=position_jitter(0.2))
 ```
 
 <!-- TODO - ADD SECTION BELOW: -->
-###### How are prices trending over time?
+### How are prices trending over time?
 
-We can check how the average prices are evolving over time:
+We can check how the average prices are evolving over time.
 
-**WORK IN PROGRESS**
+First let's group the data by the date the transaction was made (UTC timezone), and get the average price by day for each category. We can use the `mutate` function from the `dplyr` package to add a new column for the day the transaction was made by extracting the string from the 1st element to the 10th element to only grab the date and convert it using `anytime()` before assigning the results to the new column `createdAtDay`:
 
-TODO - Prices over time
+```{r}
+decentraland_data <- mutate(decentraland_data, 
+                            createdAtDay = anytime(substr(createdAt, 1, 10)))
+```
 
-TODO - Prices over time - facet by category
+Now we can group the data by the `createdAtDay` we just created and the category:
+```{r}
+daily_prices <- group_by(decentraland_data, 
+                         createdAtDay, 
+                         category)
+```
 
+Now when we apply an operation like `count()` we get the results back by the groupings we specified above:
+```{r}
+count(daily_prices)
+```
+
+Next let's create the new R object `daily_prices_averaged` with the average price (in MANA) by day and category:
+```{r}
+daily_prices_averaged <- summarise(daily_prices, 
+                                   avg_price_mana = mean(price_mana),
+                                   sum_price_mana = sum(price_mana))
+```
+
+Finally we can visualize the results over time by category:
+
+```{r}
+ggplot(daily_prices_averaged, aes(x=createdAtDay, y=avg_price_mana, color=category)) + geom_line()
+```
+
+And we can compare that to the total sum of MANA traded through the transactions by category:
+```{r}
+ggplot(daily_prices_averaged, aes(x=createdAtDay, y=sum_price_mana, color=category)) + 
+  geom_line() +
+  scale_y_log10()
+```
+
+
+### USD Value
 
 A much more useful question for us to ask however, is how the prices **in US Dollars $** are trending since the value in MANA is based on the current exchange rate.
 
+We can take what we learned in the previous sections to get the current latest best price one could sell the MANA cryptocurrency for on the HitBTC exchange:
 <!-- - here remember to use pins data from HitBTC since we need historical prices instead of latest price -->
+```{r}
+# Build the url for the API request
+url <- paste0("https://api.hitbtc.com/api/2/public/orderbook/MANAUSD")
+# Get the data from the url and convert from JSON to dataframe
+orderbook <- fromJSON(content(GET(url), as='text'))
+```
 
-**WORK IN PROGRESS**
+Now we can show the cheapest price that could sell MANA for right now:
+```{r}
+orderbook$bid[[1]]
+```
 
-TODO - Prices USD over time
+If we just use the latest price however, that doesn't tell us exactly what we are looking for because the value of MANA a week ago in terms of USD ($) could have been very different than what it is right now, so that sale should account for the proper exchange rate at the time of the transaction rather than the current latest price.
 
-TODO - Prices USD over time - facet by category
+In order to have the historical price-point of MANA, we can use the same connection we established earlier using the `pins` package, and pull the latest published dataset with historical orderbook data from the HitBTC exchange:
+```{r}
+# Pull the data "hitBTC_orderbook"
+cryptodata <- pin_get(name = "hitBTC_orderbook")
+# Show the data 
+cryptodata
+```
 
+Now we want to filter the dataset down to the MANA cryptocurrency alone:
+```{r}
+mana_historical <- filter(cryptodata, symbol == 'MANA')
+# Show the data
+mana_historical
+```
 
-We won't dive any deeper into this data here, but see this article for a better understanding of the way different pieces of land (parcels) are priced based on their location: https://medium.com/nonfungible/short-analysis-of-decentralands-uprising-economy-1e55ac687c35
+Finally we can join the historical prices data we just pulled to the information about the Decentraland transactions.
+
+First, we will make a new column `pkDummy` as a string of the current date and hour (but no minutes and seconds) to use to join the information together:
+```{r}
+decentraland_data <- mutate(decentraland_data,
+                            pkDummy = substr(createdAt, 1, 13))
+# Show the new field pkDummy:
+decentraland_data$pkDummy
+```
+
+Now we can join the two data sources on the `pkDummy` field:
+```{r}
+decentraland_data <- left_join(decentraland_data, 
+                               mana_historical, 
+                               by = 'pkDummy')
+```
+
+Now the dataframe `decentraland_data` should have the same number of rows as before, but include additional columns that allow us to calculate the correct value in terms of USD ($) at the time the transaction was made on the MANA blockchain.
+
+We can use the `bid_1_price`, which indicates the best rate someone was willing to pay for MANA at the time the transaction was made (on the HitBTC exchange) to calculate the `value_usd` as the equivalent USD value of the MANA traded at the time:
+```{r}
+decentraland_data <- mutate(decentraland_data, 
+                            value_usd = bid_1_price * price_mana)
+```
+
+Now we can once again summarize the data and create visualizations showing the trend in terms of actual $ being traded in the Decentraland virtual real estate markets. First the data preparation steps repeated for the analysis at the daily level:
+```{r}
+# Group the data
+daily_prices <- group_by(decentraland_data, 
+                         createdAtDay, 
+                         category)
+# Compute average and sum
+daily_prices_averaged <- summarise(daily_prices, 
+                                   avg_value_usd = mean(value_usd),
+                                   sum_value_usd = sum(value_usd))
+```
+
+Now we can visualize the trends in terms of USD ($) value (with a logarithmic y-axis scale to make the comparison easier):
+```{r}
+ggplot(daily_prices_averaged, 
+       aes(x=createdAtDay, y=avg_value_usd, color=category)) + 
+  # Add lines
+  geom_line() +
+  # Make y-axis scale logarithmic
+  scale_y_log10()
+```
+
+And the total USD ($) value being traded (with a logarithmic y-axis scale to make the comparison easier):
+```{r}
+ggplot(daily_prices_averaged, 
+       aes(x=createdAtDay, y=sum_value_usd, color=category)) + 
+  # Add lines
+  geom_line() +
+  # Make y-axis scale logarithmic
+  scale_y_log10()
+```
+
+```{r, echo=F, warning=F, message=F}
+# import scales to convert things to $
+library(scales)
+```
+
+Overall, since the earliest data was collected on the date `r min(decentraland_data$createdAtDay, na.rm=TRUE)`, we have been able to measure a USD (\$) traded value of: `r dollar(sum(decentraland_data$value_usd, na.rm=TRUE))`. That is an average of `r dollar(sum(decentraland_data$value_usd, na.rm=TRUE)/n_distinct(decentraland_data$createdAtDay))` per day. Breakdown by day below:
+```{r}
+avg_value_daily <- summarise(daily_prices_averaged, 
+                             sum_value_usd = sum(sum_value_usd))
+# Show the data
+avg_value_daily
+```
+
+We can visualize the **cumulative** total value (\$) over time by visualizing the data and using the `cumsum()` function on `sum_value_usd` for the cumulative value ($) over time:
+```{r}
+# Make cumulative value chart
+ggplot(avg_value_daily, aes(x=createdAtDay, y=cumsum(sum_value_usd))) +
+  geom_line() +
+  # Format y-axis to show formatted $
+  scale_y_continuous(labels=dollar_format()) +
+  # Adjust y-axis label
+  ylab('Cumulative Value ($) of Transactions') +
+  # Add title
+  ggtitle('Cumulative value ($) of transactions in Decentraland', 
+          subtitle = glue('Since: {min(avg_value_daily$createdAtDay)}, through: {max(avg_value_daily$createdAtDay)}'))
+```
+
+### Specific Analysis
+
+See this article for a better understanding of the way different pieces of land (parcels) are priced based on their location: https://medium.com/nonfungible/short-analysis-of-decentralands-uprising-economy-1e55ac687c35
 
 Which provides a really great visual breakdown on the full Decentraland map:
 ```{r, echo=F, out.width='100%', out.height='100%'}
 knitr::include_graphics("images/decentraland_global_stats.png")
 ```
+
+It is really easy to tell that there are major differences in the price of land in Decentraland based on the location of the property. The main driver being how close the property is to the center of the map, where all players are teleported to when they start the game. 
+
+Meaning, we should be able to predict the value of a piece of land pretty accurately based on its location. Therefore, we will create a new variable `distance_center` to describe the combined distance of the x and y coordinates from the center of the map (coordinates 0,0). After that, we will also create a new column `district` based on the specific range of the coordinates, matching the breakdown of what is shown in the image above.
+
+**WORK IN PROGRESS**
+
+TODO - Here analyze land by range of x and y coordinates
+
+
+TODO - Use analysis to find deals on Decentraland that are good based on the location of the plot of land. Ideally figure out some sort of way to be alerted when there's a good deal
+
 
 
 <!-- Commented out because does not feel very relevant, might be better to add this as a fun note for the end indead - TODO -->
