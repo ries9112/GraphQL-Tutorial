@@ -24,7 +24,7 @@ options(scipen=999)
 # setup data needed at a global level for exercise chunks:
 url <- "https://jobs.github.com/positions.json"
 # Get the data from the url and convert to dataframe
-github_jobs <- fromJSON(content(GET(url), as='text'))
+software_dev_jobs <- fromJSON(content(GET(url), as='text'))
 # Modify the url for the API request for New York location
 url <- paste0(url, "?location=new+york")
 # Get the data from the url and convert to dataframe
@@ -133,73 +133,75 @@ Sys.time()
 
 ### Example - GitHub Job Board API
 
-The first example given used data that does not update over time, but in many cases APIs can be used to collect data that evolves over time. To illustrate this point, the example below shows the most recent jobs posted to the [GitHub jobs board](https://jobs.github.com/) as of the moment this tutorial was launched:
+The first example given used data that does not update over time, but in many cases APIs can be used to collect data that evolves over time. To illustrate this point, the example below shows the most recent jobs posted to the [Remotive jobs board](https://remotive.io/) as of the moment this tutorial was launched. This website posts remote jobs and we can pull the latest 10 postings from their website as follows:
 
 ```{r pull_github_jobs_data}
-url <- "https://jobs.github.com/positions.json"
+url <- "https://remotive.io/api/remote-jobs?limit=10"
 # Get the data from the url and convert to dataframe
-github_jobs <- fromJSON(content(GET(url), as='text'))
+remotive_data <- fromJSON(content(GET(url), as='text'))
+# Extract jobs table from the request
+remotive_jobs <- remotive_data$jobs
 # Show data
-github_jobs 
+remotive_jobs
 ```
-***The results are limited to the most recent 50 jobs posted.***
+***The results are limited to the most recent 10 jobs posted through the url slug `?limit=10`.***
 
-To illustrate the point that the data refreshes over time, let's just show the job name, when it was posted, and the url to the job posting.
+To illustrate the point that the data refreshes over time, let's just show the job name, when it was posted, and the url of the job posting.
 
 ```{r github_jobs_show_date_posted}
-select(github_jobs, created_at, title, url)
+select(remotive_jobs, publication_date, title, url)
 ```
 
-When we are interested in a specific subset of the data, there are usually ways to modify the request to return the data we need. For example, rather than returning all job postings we could make a request to only get jobs with the location set to New York. To do this, we can add the text `?location=new+york` to the url of the API request:
+When we are interested in a specific subset of the data, there are usually ways to modify the request to return the data we need. For example, rather than returning all job postings we could make a request to only get jobs with the category of software development. To do this, we can add the text `&category=software-dev` to the url of the API request to add this optional parameter:
 
-```{r github_jobs_nyc}
+```{r software_dev_jobs}
 # Modify the url for the API request for New York location
-url <- paste0(url, "?location=new+york")
+url <- paste0(url, "&category=software-dev")
 # Get the data from the url and convert to dataframe
-github_jobs_nyc <- fromJSON(content(GET(url), as='text'))
+software_dev_jobs <- fromJSON(content(GET(url), as='text'))
+# Extract jobs table from the request
+software_dev_jobs <- software_dev_jobs$jobs
 # Show data
-github_jobs_nyc
+software_dev_jobs
 ```
 
-Use the arrow in the top right corner of the table above to see the content of the different columns. Let's take a closer look at the field `company_logo` which contains the url address to the company logo associated with the job listing:
+Use the arrow in the top right corner of the table above to see the content of the different columns. Let's take a closer look at the field `company_logo_url` which contains the url address to the company logo associated with the job listing:
 
 ```{r remove_missing_logos, include=F}
-github_jobs <- tidyr::drop_na(github_jobs, company_logo)
+software_dev_jobs <- tidyr::drop_na(software_dev_jobs, company_logo_url)
 ```
 
 
 ```{r show_logo}
-github_jobs$company_logo
+software_dev_jobs$company_logo_url
 ```
 
 By making a request at this url, we can display the image. See the example below showing the **first** company logo of the data (if there is one):
 
 ```{r show_logo_first_element, out.height="180px", out.width="300px", error=T}
-include_graphics(github_jobs$company_logo[[1]])
+include_graphics(software_dev_jobs$company_logo_url[[1]])
 ```
 
-You can also navigate to the url for the job listing: `r github_jobs$url[[1]]`
+You can also navigate to the url for the job listing: `r software_dev_jobs$company_logo_url[[1]]`
 
-Play around with the results of the API request we made. The example below returns the maximum value of the `created_at` field, meaning the date and time the most recent job posting was created:
+Play around with the results of the API request we made. The example below returns the maximum value of the `publication_date` field, meaning the date and time the most recent job posting was created:
 
 ```{r github_results, exercise=TRUE}
-max(github_jobs$created_at)
+max(software_dev_jobs$publication_date)
 ```
 
 ```{r github_results-hint}
 # Show the logo of the 5th job listing
-include_graphics(github_jobs$company_logo[[5]])
+include_graphics(software_dev_jobs$company_logo[[5]])
 ```
 
-To give another example, we could also return results that match the text ***python*** in their description:
+<!-- To give another example, we could also return results that match the text ***R Markdown*** (the tool used to create this document) in their description: -->
 
-```{r show_github_python_jobs}
-fromJSON(content(GET("https://jobs.github.com/positions.json?description=python"), as='text'))
-```
+<!-- ```{r show_github_python_jobs} -->
+<!-- fromJSON(content(GET("https://remotive.io/api/remote-jobs?search=R Markdown"), as='text'))$jobs -->
+<!-- ``` -->
 
-Notice that on our end we do not need to worry about storing any information or creating any infrastructure, for example we do not need to worry about the difficulties that may come with storing a large amount of images and data, we can simply retrieve specifically what we need.
-
-Towards the end of this tutorial you will learn about a newer technology that is similar to APIs called **GraphQL** which not only allows the user to specify the subset of the data they want to retrieve, but also allows the user to specify which fields to return for the request. For example, if we were only interested in displaying the company logos for the job listings, rather than pulling all of the fields associated with the API request we could be more efficient and create a request that only gives the one field. Before learning how to connect to and use a GraphQL endpoint, move on to the next section to get more practice using regular APIs, this time in the context of collecting prices from the cryptocurrency markets.
+Notice that on our end we do not need to worry about storing any information or creating any infrastructure, and we do not need to worry about the difficulties that may come with storing the data, we can simply access the information we want in a way that's kind of like going to a website that just shows the current data when visited. Towards the end of this tutorial you will learn about a newer technology that is similar to APIs called **GraphQL** which not only allows the user to specify the subset of the data they want to retrieve, but also allows the user to specify which fields to return for the request. For example, if we were only interested in displaying the company logos for the job listings, rather than pulling all of the fields associated with the API request we could be more efficient and create a request that only gives the one field. Before learning how to connect to and use a GraphQL endpoint, move on to the next section to get more practice using regular APIs, this time in the context of collecting prices from the cryptocurrency markets.
 
 ## Cryptocurrency Data Examples
 
@@ -629,6 +631,10 @@ board_register(name = "pins_board",
                board = "datatxt")
 # Pull the data "decentraland_market"
 decentraland_data <- pin_get(name = "decentraland_market")
+# Only keep unique data
+decentraland_data <-  decentraland_data[!duplicated(decentraland_data[,c("blockNumber", "buyer", "category", "createdAt", 
+                                                   "nftAddress", "txHash", "nft_owner_address", 
+                                                   "nft_owner_mana", "parcel_x_coordinate", "parcel_y_coordinate")]),]
 # Show the data 
 decentraland_data
 ```
@@ -650,19 +656,21 @@ decentraland_data
 
 We can view the contents of the `nft_image` and display the image:
 ```{r, out.height="50%", out.width="50%"}
-include_graphics(decentraland_data$nft_image[[1]]) 
+include_graphics(decentraland_data[!is.na(decentraland_data$nft_image),]$nft_image[[1]]) 
 ```
 
 The interaction with the smart contract, both when posting an item for sale and buying an item, is associated with a transaction on the Decentraland blockchain. The easiest way to view it, is by looking it up on the website etherscan.io. here is the link for the first:
 ```{r}
-paste0('https://etherscan.io/tx/',decentraland_data$txHash[[1]])
+paste0('https://etherscan.io/tx/',decentraland_data[!is.na(decentraland_data$txHash),]$txHash[[1]])
 ```
-`r paste0('https://etherscan.io/tx/',decentraland_data$txHash[[1]])`
+`r paste0('https://etherscan.io/tx/',decentraland_data[!is.na(decentraland_data$txHash),]$txHash[[1]])`
 
 Before answering more concrete questions using the historical data, we should also make sure to only include transactions relating to someone actually making a purchase, rather than the land/item simply being posted for sale, as the results could easily be skewed by items listed for prices that are much higher than anyone would realistically pay. We can do this by identifying rows where we have an address for the column `buyer`, but even easier than that is to filter results with the `status` of `sold`:
 ```{r, include=F}
 # rows before filter
 nrowdecentraland1 <- nrow(decentraland_data)
+# make backup to use for non-sold items
+decentraland_backup <- decentraland_data
 ```
 
 ```{r}
@@ -919,6 +927,262 @@ Meaning, we should be able to predict the value of a piece of land pretty accura
 **WORK IN PROGRESS**
 
 TODO - Here analyze land by range of x and y coordinates
+
+```{r}
+# Convert coordinates to numbers
+decentraland_data$parcel_x_coordinate <- as.numeric(decentraland_data$parcel_x_coordinate)
+decentraland_data$parcel_y_coordinate <- as.numeric(decentraland_data$parcel_y_coordinate)
+# Now assign zone
+decentraland_data <- mutate(decentraland_data, 
+                            zone = case_when(
+                              parcel_x_coordinate > 0 & parcel_x_coordinate < 50 &
+                                parcel_y_coordinate > 0 & parcel_y_coordinate < 50 
+                                ~ "1",
+                              parcel_x_coordinate < 0 & parcel_x_coordinate > -50 &
+                                parcel_y_coordinate < 0 & parcel_y_coordinate > -50 
+                                ~ "2",
+                              parcel_x_coordinate > 0 & parcel_x_coordinate < 50 &
+                                parcel_y_coordinate < 0 & parcel_y_coordinate > -50 
+                                ~ "3",
+                              parcel_x_coordinate < 0 & parcel_x_coordinate > -50 &
+                                parcel_y_coordinate > 0 & parcel_y_coordinate < 50 
+                                ~ "4",
+                              parcel_x_coordinate >= -83 & parcel_x_coordinate <= -52 &
+                                parcel_y_coordinate > 0 & parcel_y_coordinate < 50 
+                                ~ "5",
+                              parcel_x_coordinate > 0 & parcel_x_coordinate < 60 &
+                                parcel_y_coordinate >= 52 & parcel_y_coordinate <= 92 
+                                ~ "6",
+                              parcel_x_coordinate >= -71 & parcel_x_coordinate <= 0 &
+                                parcel_y_coordinate >= 52 & parcel_y_coordinate <= 92 
+                                ~ "7",
+                              parcel_x_coordinate >= -52 & parcel_x_coordinate <= 150 &
+                                parcel_y_coordinate >= 0 & parcel_y_coordinate <= 56
+                                ~ "8",
+                              parcel_x_coordinate >= -150 & parcel_x_coordinate <= -95 &
+                                parcel_y_coordinate >= 17 & parcel_y_coordinate <= 42 
+                                ~ "9",
+                              parcel_x_coordinate >= -49 & parcel_x_coordinate <= 71 &
+                                parcel_y_coordinate >= -93 & parcel_y_coordinate <= -52
+                                ~ "10",
+                              parcel_x_coordinate >= -150 & parcel_x_coordinate <= -51 &
+                                parcel_y_coordinate >= -73 & parcel_y_coordinate <= -2
+                                ~ "11",
+                              parcel_x_coordinate >= -52 & parcel_x_coordinate <= 150 &
+                                parcel_y_coordinate >= -37 & parcel_y_coordinate <= -1
+                                ~ "12",
+                              parcel_x_coordinate >= -71 & parcel_x_coordinate <= 0 &
+                                parcel_y_coordinate >= 95 & parcel_y_coordinate <= 150
+                                ~ "13",
+                              parcel_x_coordinate >= 0 & parcel_x_coordinate <= 59 &
+                                parcel_y_coordinate >= 93 & parcel_y_coordinate <= 150 
+                                ~ "14",
+                              parcel_x_coordinate >= 2 & parcel_x_coordinate <= 71 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -94 
+                                ~ "15",
+                              parcel_x_coordinate >= -50 & parcel_x_coordinate <= 0 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -93 
+                                ~ "16",
+                              parcel_x_coordinate >= 74 & parcel_x_coordinate <= 150 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -39
+                                ~ "17",
+                              parcel_x_coordinate >= -150 & parcel_x_coordinate <= -50 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -74
+                                ~ "18",
+                              !is.na(parcel_x_coordinate) | !is.na(parcel_y_coordinate) 
+                              ~ "outisde main range"
+                              ))
+# Convert to numeric
+# decentraland_data$zone <- as.numeric(decentraland_data$zone)
+```
+
+Summarize the data by zone:
+```{r}
+decentraland_data %>% group_by(zone) %>% count()
+```
+
+Plot the average prices (MANA) by zone:
+```{r}
+by_zone <- filter(decentraland_data, zone != "outside main range")
+# Convert zone to numeric
+by_zone$zone <- as.numeric(by_zone$zone)
+# Group the data
+daily_prices <- group_by(by_zone[!is.na(by_zone$zone),], 
+                         zone,
+                         createdAtDay)
+# Compute average and sum
+daily_prices_averaged <- summarise(daily_prices, 
+                                   avg_value_usd = mean(value_usd),
+                                   sum_value_usd = sum(value_usd),
+                                   avg_value_mana = mean(price_mana),
+                                   sum_value_mana = sum(price_mana))
+# Plot data
+ggplot(daily_prices_averaged, 
+       aes(x=createdAtDay, y=avg_value_mana)) + 
+  # Add lines
+  geom_line() +
+  # Add points
+  geom_point() +
+  # Make y-axis scale logarithmic
+  scale_y_log10() +
+  scale_y_continuous(label=comma) +
+  facet_wrap(facets = "zone")
+```
+
+Plot the prices (USD) by zone:
+```{r}
+# Plot data
+ggplot(daily_prices_averaged, 
+       aes(x=createdAtDay, y=sum_value_usd)) + 
+  # Add lines
+  geom_line() +
+  # Add points
+  geom_point() +
+  # Make y-axis scale logarithmic
+  scale_y_log10() +
+  scale_y_continuous(label=comma) +
+  facet_wrap(facets = "zone")
+```
+
+<!-- Create a linear regression model to predict the price of LAND: -->
+<!-- ```{r} -->
+<!-- lm_model = lm(price_mana ~ parcel_x_coordinate, parcel_y_coordinate, data = decentraland_data) -->
+<!-- ``` -->
+
+<!-- Show results: -->
+<!-- ```{r} -->
+<!-- lm_model -->
+<!-- ``` -->
+
+<!-- Summarized results: -->
+<!-- ```{r} -->
+<!-- summary(lm_model) -->
+<!-- ``` -->
+
+
+
+
+
+```{r}
+#write .csv to send to Kai
+train_data <- decentraland_data %>% 
+  select(blockNumber:status,category, parcel_x_coordinate, parcel_y_coordinate,
+         # ask_1_price, ask_1_quantity,bid_1_price, bid_1_quantity, 
+         value_usd, zone, createdAtDay,
+         txHash:nft_owner_mana, -price) %>% 
+  # Only keep parcels
+  filter(category == "parcel")
+  # rename(ask_1_price_mana = "ask_1_price", ask_1_quantity_mana = "ask_1_quantity",
+  #        bid_1_price_mana = "ask_1_price", bid_1_quantity_mana = "ask_1_quantity") %>% 
+
+# write.csv(train_data, "decentraland_sold.csv")
+```
+
+```{r}
+# Now create separate dataset with things that are listed for sale
+decentraland_backup <- filter(decentraland_backup, status == "open" & is.na(buyer))
+# Convert coordinates to numbers
+decentraland_backup$parcel_x_coordinate <- as.numeric(decentraland_backup$parcel_x_coordinate)
+decentraland_backup$parcel_y_coordinate <- as.numeric(decentraland_backup$parcel_y_coordinate)
+# Now assign zone
+decentraland_backup <- mutate(decentraland_backup, 
+                            zone = case_when(
+                              parcel_x_coordinate > 0 & parcel_x_coordinate < 50 &
+                                parcel_y_coordinate > 0 & parcel_y_coordinate < 50 
+                                ~ "1",
+                              parcel_x_coordinate < 0 & parcel_x_coordinate > -50 &
+                                parcel_y_coordinate < 0 & parcel_y_coordinate > -50 
+                                ~ "2",
+                              parcel_x_coordinate > 0 & parcel_x_coordinate < 50 &
+                                parcel_y_coordinate < 0 & parcel_y_coordinate > -50 
+                                ~ "3",
+                              parcel_x_coordinate < 0 & parcel_x_coordinate > -50 &
+                                parcel_y_coordinate > 0 & parcel_y_coordinate < 50 
+                                ~ "4",
+                              parcel_x_coordinate >= -83 & parcel_x_coordinate <= -52 &
+                                parcel_y_coordinate > 0 & parcel_y_coordinate < 50 
+                                ~ "5",
+                              parcel_x_coordinate > 0 & parcel_x_coordinate < 60 &
+                                parcel_y_coordinate >= 52 & parcel_y_coordinate <= 92 
+                                ~ "6",
+                              parcel_x_coordinate >= -71 & parcel_x_coordinate <= 0 &
+                                parcel_y_coordinate >= 52 & parcel_y_coordinate <= 92 
+                                ~ "7",
+                              parcel_x_coordinate >= -52 & parcel_x_coordinate <= 150 &
+                                parcel_y_coordinate >= 0 & parcel_y_coordinate <= 56
+                                ~ "8",
+                              parcel_x_coordinate >= -150 & parcel_x_coordinate <= -95 &
+                                parcel_y_coordinate >= 17 & parcel_y_coordinate <= 42 
+                                ~ "9",
+                              parcel_x_coordinate >= -49 & parcel_x_coordinate <= 71 &
+                                parcel_y_coordinate >= -93 & parcel_y_coordinate <= -52
+                                ~ "10",
+                              parcel_x_coordinate >= -150 & parcel_x_coordinate <= -51 &
+                                parcel_y_coordinate >= -73 & parcel_y_coordinate <= -2
+                                ~ "11",
+                              parcel_x_coordinate >= -52 & parcel_x_coordinate <= 150 &
+                                parcel_y_coordinate >= -37 & parcel_y_coordinate <= -1
+                                ~ "12",
+                              parcel_x_coordinate >= -71 & parcel_x_coordinate <= 0 &
+                                parcel_y_coordinate >= 95 & parcel_y_coordinate <= 150
+                                ~ "13",
+                              parcel_x_coordinate >= 0 & parcel_x_coordinate <= 59 &
+                                parcel_y_coordinate >= 93 & parcel_y_coordinate <= 150 
+                                ~ "14",
+                              parcel_x_coordinate >= 2 & parcel_x_coordinate <= 71 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -94 
+                                ~ "15",
+                              parcel_x_coordinate >= -50 & parcel_x_coordinate <= 0 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -93 
+                                ~ "16",
+                              parcel_x_coordinate >= 74 & parcel_x_coordinate <= 150 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -39
+                                ~ "17",
+                              parcel_x_coordinate >= -150 & parcel_x_coordinate <= -50 &
+                                parcel_y_coordinate >= -150 & parcel_y_coordinate <= -74
+                                ~ "18",
+                              !is.na(parcel_x_coordinate) | !is.na(parcel_y_coordinate) 
+                              ~ "outisde main range"
+                              ))
+# Only keep unique data
+decentraland_backup <-  decentraland_backup[!duplicated(decentraland_backup[,c("blockNumber", "buyer", "category", "createdAt", 
+                                                   "nftAddress", "txHash", "nft_owner_address", 
+                                                   "nft_owner_mana", "parcel_x_coordinate", "parcel_y_coordinate")]),]
+
+# Make pkdummy for join
+decentraland_backup <- mutate(decentraland_backup,
+                            pkDummy = substr(createdAt, 1, 13))
+
+# Join price data
+decentraland_backup <- left_join(decentraland_backup, 
+                               mana_historical, 
+                               by = 'pkDummy')
+
+# Add value_usd field
+decentraland_backup <- mutate(decentraland_backup, 
+                            value_usd = bid_1_price * price_mana)
+
+# Create test data
+test_data <- decentraland_backup %>% 
+  select(blockNumber:status,category, parcel_x_coordinate, parcel_y_coordinate,
+         # ask_1_price, ask_1_quantity,bid_1_price, bid_1_quantity, 
+         value_usd, zone,
+         txHash:nft_owner_mana, -price) %>% 
+  # Only keep parcels
+  filter(category == "parcel")
+  # rename(ask_1_price_mana = "ask_1_price", ask_1_quantity_mana = "ask_1_quantity",
+  #        bid_1_price_mana = "ask_1_price", bid_1_quantity_mana = "ask_1_quantity") %>% 
+  
+
+# do an outer join between train and test to exclude items that have sold since data was collected
+test_data <- anti_join(x = test_data, y = train_data, by = c("nftAddress", "blockNumber"))
+  
+#write .csv to send to Kai
+write.csv(test_data, "decentraland_available.csv")
+```
+
+
+
 
 
 TODO - Use analysis to find deals on Decentraland that are good based on the location of the plot of land. Ideally figure out some sort of way to be alerted when there's a good deal
